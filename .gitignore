@@ -1,0 +1,48 @@
+# Secrets — never commit
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Audio/video demo files
+*.mp3
+*.mp4
+*.wav
+*.webm
+*.m4a
+*.ogg
+generate_demo.py
+demo_interview*.mp3
+demo_interview*.webm
+
+# Whisper model cache
+~/.cache/whisper/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude
+.claude/
+
+# Logs
+*.log
