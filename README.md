@@ -87,7 +87,7 @@ Every finding is timestamped to the exact second it happened in your recording.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/interview-copilot.git
+git clone https://github.com/MairAhmed/interview-copilot.git
 cd interview-copilot
 ```
 
