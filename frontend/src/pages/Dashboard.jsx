@@ -136,9 +136,9 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 // ─── Session card ──────────────────────────────────────────────────────────────
-function SessionCard({ session, index, onView }) {
-  const delta = index < SESSIONS.length - 1
-    ? (session.overall - SESSIONS[index + 1].overall).toFixed(1)
+function SessionCard({ session, prevSession, index, onView }) {
+  const delta = prevSession != null
+    ? (session.overall - prevSession.overall).toFixed(1)
     : null
 
   return (
@@ -449,7 +449,13 @@ export default function Dashboard() {
             </div>
             <div className="space-y-3">
               {SESSIONS.map((s, i) => (
-                <SessionCard key={s.id} session={s} index={i} onView={handleViewSession} />
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  prevSession={SESSIONS[i + 1] ?? null}
+                  index={i}
+                  onView={handleViewSession}
+                />
               ))}
             </div>
           </div>
