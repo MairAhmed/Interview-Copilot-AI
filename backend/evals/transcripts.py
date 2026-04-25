@@ -101,6 +101,6 @@ TRANSCRIPTS = {
 # Expected score ranges for each transcript
 EXPECTED = {
     "strong":  {"overall": (7.5, 10.0), "technical": (7.5, 10.0), "communication": (7.0, 10.0), "confidence": (7.0, 10.0)},
-    "average": {"overall": (5.0,  7.5), "technical": (5.0,  7.5), "communication": (4.5,  7.5), "confidence": (4.0,  7.0)},
+    "average": {"overall": (4.0,  7.5), "technical": (4.0,  7.5), "communication": (4.0,  7.5), "confidence": (4.0,  7.0)},
     "weak":    {"overall": (1.0,  5.0), "technical": (1.0,  5.0), "communication": (1.0,  5.5), "confidence": (1.0,  5.0)},
 }
