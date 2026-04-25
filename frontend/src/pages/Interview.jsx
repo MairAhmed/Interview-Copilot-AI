@@ -84,6 +84,46 @@ function Waveform({ active, bars }) {
   )
 }
 
+// ─── Live filler counter ───────────────────────────────────────────────────────
+const LIVE_FILLER_WORDS = ['um', 'uh', 'like', 'you know', 'basically', 'i think', 'i guess', 'so uh', 'right']
+
+function LiveFillerCounter({ counts }) {
+  const entries = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1])
+  const total   = entries.reduce((s, [, n]) => s + n, 0)
+
+  return (
+    <div className="w-full space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-600 uppercase tracking-widest font-semibold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+          Live Filler Detector
+        </p>
+        {total > 0 && (
+          <span className="text-xs font-bold text-amber-400 tabular-nums">{total} detected</span>
+        )}
+      </div>
+      {entries.length === 0 ? (
+        <p className="text-xs text-gray-700 italic">Listening… no fillers yet 🎯</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {entries.map(([word, count]) => (
+            <motion.span
+              key={word}
+              layout
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-1"
+            >
+              <span className="text-amber-300 text-xs font-medium">"{word}"</span>
+              <span className="text-amber-400 font-black text-sm tabular-nums">{count}</span>
+            </motion.span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Agent progress ────────────────────────────────────────────────────────────
 function AgentProgress({ stepIdx }) {
   return (
@@ -159,6 +199,7 @@ export default function Interview() {
   const [error, setError]                   = useState(null)
   const [bars, setBars]                     = useState(Array(44).fill(4))
   const [meetingReady, setMeetingReady]     = useState(false)
+  const [liveFillers, setLiveFillers]       = useState({})
 
   // Resume upload state
   const [resumeFile, setResumeFile]         = useState(null)
@@ -166,11 +207,12 @@ export default function Interview() {
   const [resumeError, setResumeError]       = useState(null)
   const [tailoredData, setTailoredData]     = useState(null)  // { questions, role, key_skills }
 
-  const recorderRef  = useRef(null)
-  const chunksRef    = useRef([])
-  const timerRef     = useRef(null)
-  const frameRef     = useRef(null)
-  const streamRef    = useRef(null)
+  const recorderRef    = useRef(null)
+  const chunksRef      = useRef([])
+  const timerRef       = useRef(null)
+  const frameRef       = useRef(null)
+  const streamRef      = useRef(null)
+  const recognitionRef = useRef(null)
 
   const questions = tailoredData?.questions || QUESTIONS[interviewType] || QUESTIONS.general
   const total     = questions.length
@@ -315,12 +357,40 @@ export default function Interview() {
       frameRef.current = requestAnimationFrame(animate)
     }
     animate()
+
+    // ── Live speech recognition for filler detection ──────────────────────────
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition()
+      recognition.continuous     = true
+      recognition.interimResults = true
+      recognition.lang           = 'en-US'
+      recognitionRef.current     = recognition
+
+      recognition.onresult = (event) => {
+        let transcript = ''
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript.toLowerCase() + ' '
+        }
+        const counts = {}
+        LIVE_FILLER_WORDS.forEach(f => {
+          const escaped = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          const matches = transcript.match(new RegExp(`\\b${escaped}\\b`, 'gi'))
+          if (matches?.length) counts[f] = matches.length
+        })
+        setLiveFillers(counts)
+      }
+      recognition.onerror = () => {}   // silently ignore (e.g. no-speech timeout)
+      try { recognition.start() } catch (_) {}
+    }
   }
 
   const stopRecording = useCallback(() => {
     recorderRef.current?.stop()
     clearInterval(timerRef.current)
     streamRef.current?.getTracks().forEach(t => t.stop())
+    try { recognitionRef.current?.stop() } catch (_) {}
+    setLiveFillers({})
     setPhase('review')
   }, [])
 
@@ -686,9 +756,12 @@ export default function Interview() {
                     </AnimatePresence>
                   )}
 
-                  {/* Waveform */}
-                  <div className="w-full card bg-[#0d0d10] border-white/[0.04] py-5">
+                  {/* Waveform + live filler counter */}
+                  <div className="w-full card bg-[#0d0d10] border-white/[0.04] py-5 space-y-4">
                     <Waveform active={true} bars={bars} />
+                    <div className="border-t border-white/[0.04] pt-4 px-1">
+                      <LiveFillerCounter counts={liveFillers} />
+                    </div>
                   </div>
 
                   {/* Controls */}
