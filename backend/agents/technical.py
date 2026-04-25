@@ -43,7 +43,7 @@ def run(transcript_segments: list, full_text: str, interview_type: str, client: 
     formatted = "\n".join(
         f"[{seg['start']:.1f}s - {seg['end']:.1f}s]: {seg['text']}"
         for seg in transcript_segments
-    )
+    ) or full_text
 
     message = client.messages.create(
         model="claude-sonnet-4-6",

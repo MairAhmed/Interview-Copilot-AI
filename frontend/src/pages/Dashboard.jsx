@@ -11,9 +11,10 @@ import {
 import clsx from 'clsx'
 import Nav from '../components/Nav'
 import PageTransition from '../components/PageTransition'
+import { getSessions, timeAgo, fmtDuration, typeLabel, typeTag, typeColor } from '../utils/sessions'
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-const SESSIONS = [
+// ─── Mock data (fallback when no real sessions yet) ────────────────────────────
+const MOCK_SESSIONS = [
   {
     id: 1, type: 'Technical — SWE', tag: 'SWE',
     date: 'Apr 20', daysAgo: '2 days ago', duration: '4m 12s',
@@ -37,7 +38,7 @@ const SESSIONS = [
   },
 ]
 
-const TREND_DATA = [
+const MOCK_TREND = [
   { label: 'Apr 14', overall: 5.9, technical: 5.5, communication: 6.8, confidence: 5.1 },
   { label: 'Apr 17', overall: 6.8, technical: 6.2, communication: 7.4, confidence: 6.5 },
   { label: 'Apr 20', overall: 7.4, technical: 8.1, communication: 7.0, confidence: 6.8 },
@@ -48,6 +49,27 @@ const FOCUS_TIPS = [
   'Practice BLUF: state your answer in the first sentence, then explain',
   'Before every answer, pause 2 seconds and commit to a direct opening line',
 ]
+
+// Convert a stored session → display format for SessionCard
+function toDisplaySession(s) {
+  const weaknesses = Object.values(s.scores || {}).flatMap(v => v.weaknesses || [])
+  return {
+    id:        s.id,
+    type:      typeLabel(s.interview_type),
+    tag:       typeTag(s.interview_type),
+    date:      s.date,
+    daysAgo:   timeAgo(s.timestamp),
+    duration:  fmtDuration(s.duration),
+    overall:   s.overall_score,
+    technical: s.technical,
+    communication: s.communication,
+    confidence: s.confidence,
+    topIssue:  weaknesses[0] || 'Review the full report for details',
+    color:     typeColor(s.interview_type),
+    // Keep full result for "View report"
+    _raw:      s,
+  }
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const scoreColor = s => s >= 7.5 ? '#22c55e' : s >= 6 ? '#f59e0b' : '#ef4444'
@@ -182,10 +204,26 @@ export default function Dashboard() {
   const [activeLines, setActiveLines] = useState(['overall'])
   const userName = localStorage.getItem('ic_name') || 'there'
 
+  // Load real sessions from localStorage, fall back to mock data
+  const rawSessions  = getSessions()
+  const hasReal      = rawSessions.length > 0
+  const SESSIONS     = hasReal ? rawSessions.map(toDisplaySession) : MOCK_SESSIONS
+  const TREND_DATA   = hasReal
+    ? [...rawSessions].reverse().map(s => ({
+        label:         s.date,
+        overall:       +s.overall_score.toFixed(1),
+        technical:     +s.technical.toFixed(1),
+        communication: +s.communication.toFixed(1),
+        confidence:    +s.confidence.toFixed(1),
+      }))
+    : MOCK_TREND
+
   const avgScore  = (SESSIONS.reduce((s, x) => s + x.overall, 0) / SESSIONS.length).toFixed(1)
   const bestScore = Math.max(...SESSIONS.map(s => s.overall))
   const confidenceAvg = (SESSIONS.reduce((s, x) => s + x.confidence, 0) / SESSIONS.length).toFixed(1)
-  const confImprovement = ((SESSIONS[0].confidence - SESSIONS[SESSIONS.length - 1].confidence) / SESSIONS[SESSIONS.length - 1].confidence * 100).toFixed(0)
+  const confImprovement = SESSIONS.length > 1
+    ? ((SESSIONS[0].confidence - SESSIONS[SESSIONS.length - 1].confidence) / SESSIONS[SESSIONS.length - 1].confidence * 100).toFixed(0)
+    : '0'
 
   const LINES = [
     { key: 'overall',       color: '#6366f1', label: 'Overall' },
@@ -195,25 +233,30 @@ export default function Dashboard() {
   ]
 
   const handleViewSession = (session) => {
-    // Navigate to results with mock data shaped like the real API response
-    navigate('/results', {
-      state: {
-        result: {
-          overall_score: session.overall,
-          interview_type: session.type.toLowerCase().replace(/ /g, '-'),
-          duration: 250,
-          summary: `Session from ${session.date}. Top issue: ${session.topIssue}`,
-          scores: {
-            technical:     { score: session.technical,     summary: '', strengths: [], weaknesses: [session.topIssue], moments: [] },
-            communication: { score: session.communication, summary: '', strengths: [], weaknesses: [], moments: [] },
-            confidence:    { score: session.confidence,    summary: '', strengths: [], weaknesses: [], moments: [] },
-          },
-          filler_words: [],
-          action_plan: [session.topIssue],
-          transcript: [],
+    if (session._raw) {
+      // Real session — pass the full stored result
+      navigate('/results', { state: { result: session._raw } })
+    } else {
+      // Mock session fallback
+      navigate('/results', {
+        state: {
+          result: {
+            overall_score: session.overall,
+            interview_type: session.type.toLowerCase().replace(/ /g, '-'),
+            duration: 250,
+            summary: `Session from ${session.date}. Top issue: ${session.topIssue}`,
+            scores: {
+              technical:     { score: session.technical,     summary: '', strengths: [], weaknesses: [session.topIssue], moments: [] },
+              communication: { score: session.communication, summary: '', strengths: [], weaknesses: [], moments: [] },
+              confidence:    { score: session.confidence,    summary: '', strengths: [], weaknesses: [], moments: [] },
+            },
+            filler_words: [],
+            action_plan: [session.topIssue],
+            transcript: [],
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   return (

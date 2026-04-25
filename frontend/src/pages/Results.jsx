@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { saveSession } from '../utils/sessions'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell
@@ -374,9 +375,23 @@ function CompareBar({ label, current, previous, color }) {
 
 // ─── Results page ──────────────────────────────────────────────────────────────
 export default function Results() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const result   = location.state?.result || DEMO_RESULT
+  const location  = useLocation()
+  const navigate  = useNavigate()
+  const savedRef  = useRef(false)
+  const isReal    = !!location.state?.result   // came from real analysis
+  const result    = location.state?.result || DEMO_RESULT
+
+  // Persist real results to localStorage (only once per page load)
+  useEffect(() => {
+    if (isReal && !savedRef.current) {
+      savedRef.current = true
+      const saved = saveSession(result)
+      // Attach prev_score from storage so delta banner works
+      if (saved?.prev_score != null && result.prev_score == null) {
+        result.prev_score = saved.prev_score
+      }
+    }
+  }, [])   // eslint-disable-line
 
   const radarData = Object.entries(result.scores).map(([key, val]) => ({
     subject: AGENT_META[key]?.label || key,
