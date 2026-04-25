@@ -4,6 +4,8 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 import anthropic
 from dotenv import load_dotenv
 
@@ -183,6 +185,38 @@ async def generate_questions(
         raise HTTPException(status_code=500, detail=f"Question generation failed: {e}")
 
     return result
+
+
+class AskRequest(BaseModel):
+    question: str
+    context: str   # serialized summary of the result (scores + summary + top issues)
+
+@app.post("/ask")
+async def ask_claude(body: AskRequest):
+    """
+    Streaming coaching follow-up. Takes a user question + interview context,
+    returns a concise, personalized coaching answer.
+    """
+    client = get_client()
+
+    system = (
+        "You are an expert interview coach. The user just completed an AI-graded mock interview. "
+        "You have their results below. Answer their question in 2–4 sentences — be direct, specific, "
+        "and actionable. Reference their actual scores or issues when relevant. No fluff."
+        f"\n\nINTERVIEW RESULTS CONTEXT:\n{body.context}"
+    )
+
+    def stream():
+        with client.messages.stream(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=256,
+            system=system,
+            messages=[{"role": "user", "content": body.question}],
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+
+    return StreamingResponse(stream(), media_type="text/plain")
 
 
 @app.post("/transcribe-only")

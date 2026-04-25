@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { saveSession } from '../utils/sessions'
+import confetti from 'canvas-confetti'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell
@@ -8,12 +9,13 @@ import {
 import {
   Brain, Mic, MessageSquare, Target, ChevronDown, ChevronUp,
   RotateCcw, CheckCircle, AlertCircle, Lightbulb, TrendingUp, TrendingDown, Minus,
-  FileText
+  FileText, Send, Loader2, Sparkles
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
 import Nav from '../components/Nav'
 import PageTransition from '../components/PageTransition'
+import { useToast } from '../components/Toast'
 
 // ─── Demo fallback ─────────────────────────────────────────────────────────────
 const DEMO_RESULT = {
@@ -126,6 +128,25 @@ function DeltaBadge({ current, previous, size = 'sm' }) {
   )
 }
 
+// ─── Animated number counter ───────────────────────────────────────────────────
+function AnimatedScore({ value, decimals = 1, delay = 0, color }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    const start = Date.now() + delay
+    const duration = 1100
+    const target = parseFloat(value)
+    const tick = () => {
+      const elapsed = Math.max(0, Date.now() - start)
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(parseFloat((eased * target).toFixed(decimals)))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [value, delay, decimals])
+  return <span style={{ color }}>{display.toFixed(decimals)}</span>
+}
+
 // ─── Animated score ring ───────────────────────────────────────────────────────
 function ScoreRing({ score, size = 120, delay = 0 }) {
   const r       = size / 2 - 10
@@ -153,7 +174,7 @@ function ScoreRing({ score, size = 120, delay = 0 }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-black" style={{ color, fontSize: size > 100 ? '2rem' : '1.25rem', lineHeight: 1 }}>{score.toFixed(1)}</span>
+        <span className="font-black" style={{ color, fontSize: size > 100 ? '2rem' : '1.25rem', lineHeight: 1 }}><AnimatedScore value={score} color={color} delay={delay} /></span>
         <span className="text-xs text-gray-600">/10</span>
       </div>
     </div>
@@ -366,7 +387,7 @@ function CompareBar({ label, current, previous, color }) {
           {previous != null && (
             <span className="text-xs text-gray-600 font-mono">{previous.toFixed(1)}</span>
           )}
-          <span className="font-bold" style={{ color }}>{current.toFixed(1)}</span>
+          <span className="font-bold"><AnimatedScore value={current} color={color} delay={300} /></span>
         </div>
       </div>
       <div className="relative h-2 bg-white/[0.05] rounded-full overflow-hidden">
@@ -495,10 +516,131 @@ function TranscriptPanel({ fullText, fillerWords }) {
   )
 }
 
+// ─── Ask Claude follow-up ──────────────────────────────────────────────────────
+const SUGGESTED_QUESTIONS = [
+  'How do I stop saying "I think" so much?',
+  'What should I focus on most before my next interview?',
+  'How do I structure my answers better?',
+  'Why is my confidence score so low?',
+]
+
+function AskClaude({ result }) {
+  const [input, setInput]     = useState('')
+  const [answer, setAnswer]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [asked, setAsked]     = useState(false)
+  const answerRef             = useRef(null)
+
+  const context = (() => {
+    const scores = Object.entries(result.scores || {})
+      .map(([k, v]) => `${k}: ${v.score}/10 — top issue: ${v.weaknesses?.[0] || 'none'}`)
+      .join('\n')
+    return `Overall: ${result.overall_score}/10\n${scores}\nSummary: ${result.summary}`
+  })()
+
+  const ask = useCallback(async (q) => {
+    const question = q || input.trim()
+    if (!question || loading) return
+    setLoading(true)
+    setAnswer('')
+    setAsked(true)
+    setInput('')
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, context }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setAnswer(text)
+        answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    } catch {
+      setAnswer("Couldn't reach the coaching API — make sure the backend is running.")
+    } finally {
+      setLoading(false)
+    }
+  }, [input, loading, context])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.45, duration: 0.5 }}
+      className="card border-violet-600/20 bg-violet-600/5"
+    >
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-8 h-8 bg-violet-600/20 rounded-lg flex items-center justify-center">
+          <Sparkles className="w-4 h-4 text-violet-400" />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg">Ask Your Coach</h3>
+          <p className="text-xs text-gray-500">Claude has read your results — ask anything</p>
+        </div>
+      </div>
+
+      {/* Suggested questions */}
+      {!asked && (
+        <div className="flex flex-wrap gap-2 mt-4 mb-4">
+          {SUGGESTED_QUESTIONS.map((q) => (
+            <button
+              key={q}
+              onClick={() => ask(q)}
+              className="text-xs px-3 py-1.5 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-600/20 text-violet-300 rounded-full transition-colors"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Answer */}
+      {asked && (
+        <div className="mt-4 mb-4 bg-[#09090b] rounded-xl p-4 text-sm text-gray-200 leading-relaxed min-h-[60px]">
+          {loading && !answer && (
+            <span className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Thinking…
+            </span>
+          )}
+          {answer}
+          <span ref={answerRef} />
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="flex gap-2 mt-2">
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && ask()}
+          placeholder="Ask a follow-up question…"
+          className="flex-1 bg-[#111113] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500/50 transition-colors"
+        />
+        <button
+          onClick={() => ask()}
+          disabled={!input.trim() || loading}
+          className="w-10 h-10 bg-violet-600/20 hover:bg-violet-600/30 disabled:opacity-40 disabled:cursor-not-allowed border border-violet-600/25 rounded-xl flex items-center justify-center transition-colors"
+        >
+          {loading ? <Loader2 className="w-4 h-4 text-violet-400 animate-spin" /> : <Send className="w-4 h-4 text-violet-400" />}
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Results page ──────────────────────────────────────────────────────────────
 export default function Results() {
   const location  = useLocation()
   const navigate  = useNavigate()
+  const toast     = useToast()
   const savedRef  = useRef(false)
   const isReal    = !!location.state?.result   // came from real analysis
   const result    = location.state?.result || DEMO_RESULT
@@ -512,6 +654,20 @@ export default function Results() {
       if (saved?.prev_score != null && result.prev_score == null) {
         result.prev_score = saved.prev_score
       }
+      setTimeout(() => toast('✓ Session saved to your dashboard', { type: 'success' }), 600)
+    }
+  }, [])   // eslint-disable-line
+
+  // Fire confetti when score improved vs last session
+  useEffect(() => {
+    const delta = result.prev_score != null ? result.overall_score - result.prev_score : null
+    if (delta != null && delta > 0) {
+      const t = setTimeout(() => {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#6366f1','#8b5cf6','#a78bfa','#22c55e','#f59e0b'] })
+        setTimeout(() => confetti({ particleCount: 60, spread: 120, origin: { x: 0.1, y: 0.6 }, colors: ['#6366f1','#c084fc'] }), 200)
+        setTimeout(() => confetti({ particleCount: 60, spread: 120, origin: { x: 0.9, y: 0.6 }, colors: ['#22c55e','#f59e0b'] }), 350)
+      }, 800)
+      return () => clearTimeout(t)
     }
   }, [])   // eslint-disable-line
 
@@ -731,6 +887,9 @@ export default function Results() {
               </button>
             </div>
           </motion.div>
+
+          {/* Ask Claude */}
+          <AskClaude result={result} />
 
         </div>
       </div>

@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import {
   Plus, Brain, Mic, MessageSquare, Target, TrendingUp, TrendingDown,
-  ArrowRight, Flame, Clock, ChevronRight, BarChart2, Zap, CheckCircle
+  ArrowRight, Flame, Clock, ChevronRight, BarChart2, Zap, CheckCircle, Calendar
 } from 'lucide-react'
 import clsx from 'clsx'
 import Nav from '../components/Nav'
@@ -202,7 +202,16 @@ function SessionCard({ session, prevSession, index, onView }) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const [activeLines, setActiveLines] = useState(['overall'])
-  const userName = localStorage.getItem('ic_name') || 'there'
+  const userName    = localStorage.getItem('ic_name') || 'there'
+  const userRole    = localStorage.getItem('ic_role') || ''
+  const interviewDateStr = localStorage.getItem('ic_interview_date') || ''
+
+  // Countdown to interview date
+  const daysUntil = (() => {
+    if (!interviewDateStr) return null
+    const diff = Math.ceil((new Date(interviewDateStr + 'T00:00:00') - new Date()) / 86400000)
+    return diff >= 0 ? diff : null
+  })()
 
   // Load real sessions from localStorage, fall back to mock data
   const rawSessions  = getSessions()
@@ -284,6 +293,32 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Countdown banner */}
+          {daysUntil !== null && (
+            <div className="animate-fade-up flex items-center justify-between gap-4 rounded-2xl border border-indigo-600/25 bg-indigo-600/5 px-6 py-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 flex flex-col items-center justify-center shrink-0">
+                  <span className="text-xl font-black text-indigo-300 leading-none">{daysUntil}</span>
+                  <span className="text-[9px] text-indigo-500 uppercase tracking-widest leading-none mt-0.5">days</span>
+                </div>
+                <div>
+                  <p className="font-bold text-indigo-200">
+                    {daysUntil === 0 ? 'Your interview is today! 🎯' : `${daysUntil} day${daysUntil !== 1 ? 's' : ''} until your interview`}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {userRole ? `${userRole} · ` : ''}{new Date(interviewDateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/interview?mode=live')}
+                className="btn-primary text-sm py-2 px-4 whitespace-nowrap flex items-center gap-1.5 shrink-0"
+              >
+                Practice now <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

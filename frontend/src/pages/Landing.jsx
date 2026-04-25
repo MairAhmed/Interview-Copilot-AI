@@ -256,7 +256,9 @@ const MODES = [
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function Landing() {
   const navigate = useNavigate()
-  const [name, setName]         = useState('')
+  const [name, setName]           = useState('')
+  const [role, setRole]           = useState('')
+  const [interviewDate, setDate]  = useState('')
   const [nameError, setNameError] = useState(false)
 
   const handleStart = (e) => {
@@ -264,6 +266,8 @@ export default function Landing() {
     const n = name.trim()
     if (!n) { setNameError(true); document.getElementById('hero-name')?.focus(); return }
     localStorage.setItem('ic_name', n)
+    if (role.trim())       localStorage.setItem('ic_role', role.trim())
+    if (interviewDate)     localStorage.setItem('ic_interview_date', interviewDate)
     navigate('/dashboard')
   }
 
@@ -372,6 +376,24 @@ export default function Landing() {
                     background: nameError ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.05)',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.4) inset',
                   }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Target role (optional)"
+                  value={role}
+                  onChange={e => setRole(e.target.value)}
+                  className="w-full rounded-xl px-4 py-3 text-white text-sm text-center transition-all focus:outline-none border border-white/[0.08] focus:border-indigo-500/60"
+                  style={{ background: 'rgba(255,255,255,0.05)', boxShadow: '0 1px 2px rgba(0,0,0,0.4) inset' }}
+                />
+                <input
+                  type="date"
+                  value={interviewDate}
+                  onChange={e => setDate(e.target.value)}
+                  title="Interview date (optional)"
+                  className="w-full rounded-xl px-4 py-3 text-sm transition-all focus:outline-none border border-white/[0.08] focus:border-indigo-500/60"
+                  style={{ background: 'rgba(255,255,255,0.05)', boxShadow: '0 1px 2px rgba(0,0,0,0.4) inset', colorScheme: 'dark', color: interviewDate ? 'white' : '#6b7280' }}
                 />
               </div>
               {nameError && (
