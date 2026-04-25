@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mic, Square, Upload, Brain, ChevronDown, ArrowRight,
-  CheckCircle, Sparkles, Monitor, AlertCircle, Play, Info
+  CheckCircle, Sparkles, Monitor, AlertCircle, Play, Info,
+  FileText, X, Loader2, Wand2
 } from 'lucide-react'
 import clsx from 'clsx'
 import Nav from '../components/Nav'
@@ -159,14 +160,52 @@ export default function Interview() {
   const [bars, setBars]                     = useState(Array(44).fill(4))
   const [meetingReady, setMeetingReady]     = useState(false)
 
+  // Resume upload state
+  const [resumeFile, setResumeFile]         = useState(null)
+  const [resumeLoading, setResumeLoading]   = useState(false)
+  const [resumeError, setResumeError]       = useState(null)
+  const [tailoredData, setTailoredData]     = useState(null)  // { questions, role, key_skills }
+
   const recorderRef  = useRef(null)
   const chunksRef    = useRef([])
   const timerRef     = useRef(null)
   const frameRef     = useRef(null)
   const streamRef    = useRef(null)
 
-  const questions = QUESTIONS[interviewType] || QUESTIONS.general
+  const questions = tailoredData?.questions || QUESTIONS[interviewType] || QUESTIONS.general
   const total     = questions.length
+
+  // ── Upload + generate tailored questions from resume ────────────────────────
+  const handleResumeUpload = useCallback(async (file) => {
+    if (!file) return
+    setResumeFile(file)
+    setResumeError(null)
+    setTailoredData(null)
+    setResumeLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file, file.name)
+      fd.append('interview_type', interviewType)
+      const res = await fetch('/api/generate-questions', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Failed to read resume' }))
+        throw new Error(err.detail || 'Failed to read resume')
+      }
+      const data = await res.json()
+      setTailoredData(data)
+    } catch (e) {
+      setResumeError(e.message)
+    } finally {
+      setResumeLoading(false)
+    }
+  }, [interviewType])
+
+  const clearResume = () => {
+    setResumeFile(null)
+    setTailoredData(null)
+    setResumeError(null)
+    setResumeLoading(false)
+  }
 
   useEffect(() => () => {
     clearInterval(timerRef.current)
@@ -370,7 +409,14 @@ export default function Interview() {
                     <div className="relative">
                       <select
                         value={interviewType}
-                        onChange={e => setInterviewType(e.target.value)}
+                        onChange={e => {
+                          setInterviewType(e.target.value)
+                          // Re-generate if resume already uploaded
+                          if (resumeFile && !resumeLoading) {
+                            setTailoredData(null)
+                            handleResumeUpload(resumeFile)
+                          }
+                        }}
                         className="w-full bg-[#0f1623] border border-white/[0.08] rounded-xl px-4 py-3.5 appearance-none text-white focus:outline-none focus:border-indigo-500/50 transition-colors pr-10 text-sm font-medium"
                       >
                         {INTERVIEW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -379,10 +425,90 @@ export default function Interview() {
                     </div>
                   </div>
 
+                  {/* ── Resume Upload ─────────────────────────────── */}
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2 block">
+                      Resume Upload <span className="normal-case text-gray-600 tracking-normal">(optional — generates tailored questions)</span>
+                    </label>
+
+                    {!resumeFile ? (
+                      <label className="cursor-pointer">
+                        <div className="w-full flex items-center gap-3 p-4 rounded-xl border border-dashed border-white/[0.08] hover:border-indigo-600/40 hover:bg-indigo-600/5 transition-all text-gray-500 hover:text-gray-300">
+                          <FileText className="w-5 h-5 shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium">Upload your resume / CV</p>
+                            <p className="text-xs text-gray-600 mt-0.5">PDF or plain text · AI generates 5 questions tailored to your background</p>
+                          </div>
+                          <Upload className="w-4 h-4 ml-auto shrink-0 opacity-50" />
+                        </div>
+                        <input
+                          type="file"
+                          accept=".pdf,.txt,.doc,.docx,text/plain"
+                          onChange={e => { const f = e.target.files[0]; if (f) handleResumeUpload(f) }}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className={`rounded-xl border p-4 transition-all ${
+                        tailoredData
+                          ? 'border-indigo-600/30 bg-indigo-600/5'
+                          : resumeError
+                          ? 'border-red-600/30 bg-red-600/5'
+                          : 'border-white/[0.08] bg-white/[0.02]'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            tailoredData ? 'bg-indigo-600/20' : resumeError ? 'bg-red-600/20' : 'bg-white/[0.06]'
+                          }`}>
+                            {resumeLoading
+                              ? <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                              : tailoredData
+                              ? <Wand2 className="w-4 h-4 text-indigo-400" />
+                              : resumeError
+                              ? <AlertCircle className="w-4 h-4 text-red-400" />
+                              : <FileText className="w-4 h-4 text-gray-400" />
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{resumeFile.name}</p>
+                            {resumeLoading && (
+                              <p className="text-xs text-indigo-400 mt-0.5">Reading your resume and crafting questions…</p>
+                            )}
+                            {tailoredData && (
+                              <p className="text-xs text-indigo-300 mt-0.5">
+                                ✓ Questions tailored for <span className="font-semibold">{tailoredData.role}</span>
+                                {tailoredData.key_skills?.length > 0 && (
+                                  <span className="text-gray-500"> · {tailoredData.key_skills.join(', ')}</span>
+                                )}
+                              </p>
+                            )}
+                            {resumeError && (
+                              <p className="text-xs text-red-400 mt-0.5">{resumeError} — using default questions</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={clearResume}
+                            className="text-gray-600 hover:text-gray-300 transition-colors shrink-0 mt-0.5"
+                            title="Remove resume"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Questions preview — live mode only */}
                   {recordMode === 'live' && (
                     <div className="card border-white/[0.04]">
-                      <p className="text-xs text-gray-600 uppercase tracking-widest font-semibold mb-4">You'll answer these questions</p>
+                      <div className="flex items-center gap-2 mb-4">
+                        <p className="text-xs text-gray-600 uppercase tracking-widest font-semibold">You'll answer these questions</p>
+                        {tailoredData && (
+                          <span className="text-[10px] bg-indigo-600/20 text-indigo-300 border border-indigo-600/20 rounded-full px-2 py-0.5 font-semibold">
+                            ✦ Tailored to your resume
+                          </span>
+                        )}
+                      </div>
                       <ol className="space-y-3">
                         {questions.map((q, i) => (
                           <li key={i} className="flex gap-3 text-sm">

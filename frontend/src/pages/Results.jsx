@@ -7,7 +7,8 @@ import {
 } from 'recharts'
 import {
   Brain, Mic, MessageSquare, Target, ChevronDown, ChevronUp,
-  RotateCcw, CheckCircle, AlertCircle, Lightbulb, TrendingUp, TrendingDown, Minus
+  RotateCcw, CheckCircle, AlertCircle, Lightbulb, TrendingUp, TrendingDown, Minus,
+  FileText
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
@@ -68,6 +69,17 @@ const DEMO_RESULT = {
     { word: "basically", count: 4 },
     { word: "you know", count: 3 },
   ],
+  full_text: `Interviewer: Explain the difference between a stack and a queue, with real-world examples.
+
+Candidate: Um, so I think a stack and a queue are both data structures. I think a stack is like LIFO, which means last in first out? And a queue is FIFO. Like, I guess an example of a queue would be like a line at a store. And a stack would be like, I think it's browser history or something. They basically both store elements but the order you get them out is different.
+
+Interviewer: How does a hash map work internally?
+
+Candidate: A hash map basically uses a hash function to convert keys to indices. So when you add something, it hashes the key and stores the value at that index in an array. I think the issue is collisions, where two keys go to the same spot. I know chaining uses a linked list at each bucket. Lookup is usually constant time which is like why hash maps are so useful. I guess in bad cases it could be slower but normally it's fast, you know.
+
+Interviewer: Design a URL shortener at scale.
+
+Candidate: Okay so um, I think you need to take a long URL and give back a short code. I'd basically hash the URL to generate the code. You'd store the mapping in a database and when someone visits the short URL you look it up and redirect them. I'd add a cache for popular URLs so you're not hitting the database every time. I think that covers the main parts. I guess you'd need some way to handle if a lot of people are using it at once but I'm not totally sure on the details of that, like I haven't done much system design before.`,
   transcript: [],
   action_plan: [
     "Record yourself for 5 minutes talking about your last project. Count every 'I think', 'I guess', and 'um'. The goal: zero. Replace each with a direct statement.",
@@ -373,6 +385,116 @@ function CompareBar({ label, current, previous, color }) {
   )
 }
 
+// ─── Transcript panel ──────────────────────────────────────────────────────────
+const FILLER_COLORS = {
+  default: { bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/30' },
+}
+
+function highlightFillers(text, fillerWords) {
+  if (!text || !fillerWords?.length) return [{ text, highlighted: false }]
+
+  const escaped = fillerWords
+    .map(f => f.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .sort((a, b) => b.length - a.length)   // longest first avoids partial matches
+
+  const regex  = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi')
+  const parts  = []
+  let last     = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push({ text: text.slice(last, match.index), highlighted: false })
+    parts.push({ text: match[0], highlighted: true })
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push({ text: text.slice(last), highlighted: false })
+  return parts
+}
+
+function TranscriptPanel({ fullText, fillerWords }) {
+  const [open, setOpen] = useState(false)
+  const hasText = fullText && fullText.trim().length > 0
+
+  if (!hasText) return null
+
+  const parts       = highlightFillers(fullText, fillerWords)
+  const fillerCount = fillerWords?.reduce((s, f) => s + f.count, 0) || 0
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.38, duration: 0.5 }}
+      className="card"
+    >
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-start gap-4 text-left"
+      >
+        <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center shrink-0">
+          <FileText className="w-5 h-5 text-violet-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-lg leading-tight">Interview Transcript</h3>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Full text · {fillerCount > 0 && <span className="text-amber-400">{fillerCount} filler word{fillerCount !== 1 ? 's' : ''} highlighted</span>}
+            {fillerCount === 0 && 'No filler words detected'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          {fillerCount > 0 && (
+            <span className="text-xs bg-amber-500/15 text-amber-300 border border-amber-500/20 rounded-full px-2.5 py-0.5 font-medium">
+              {fillerCount} fillers
+            </span>
+          )}
+          {open
+            ? <ChevronUp className="w-5 h-5 text-gray-500" />
+            : <ChevronDown className="w-5 h-5 text-gray-500" />
+          }
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-5 pt-5 border-t border-white/[0.06]">
+              {/* Legend */}
+              {fillerCount > 0 && (
+                <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
+                  <span className="inline-block px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-medium">highlighted</span>
+                  <span>= filler word detected by the Confidence Agent</span>
+                </div>
+              )}
+
+              {/* Transcript text */}
+              <div className="bg-[#080c14] rounded-xl p-5 text-sm leading-8 text-gray-300 max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
+                {parts.map((part, i) =>
+                  part.highlighted
+                    ? (
+                      <mark
+                        key={i}
+                        className="bg-amber-500/25 text-amber-200 border border-amber-500/30 rounded px-0.5 not-italic"
+                      >
+                        {part.text}
+                      </mark>
+                    )
+                    : <span key={i}>{part.text}</span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
 // ─── Results page ──────────────────────────────────────────────────────────────
 export default function Results() {
   const location  = useLocation()
@@ -555,6 +677,12 @@ export default function Results() {
               </ResponsiveContainer>
             </motion.div>
           )}
+
+          {/* Transcript panel */}
+          <TranscriptPanel
+            fullText={result.full_text}
+            fillerWords={result.filler_words}
+          />
 
           {/* Action plan */}
           <motion.div

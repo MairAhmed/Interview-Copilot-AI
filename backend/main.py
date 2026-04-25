@@ -8,7 +8,7 @@ import anthropic
 from dotenv import load_dotenv
 
 from services.transcription import transcribe_audio
-from agents import technical, communication, confidence, synthesizer
+from agents import technical, communication, confidence, synthesizer, resume as resume_agent
 from models import AnalysisResult, TranscriptSegment, AgentScore, TimelineMoment, FillerWordCount
 
 # Load .env from project root (one level above backend/)
@@ -137,6 +137,52 @@ async def analyze(
         interview_type=interview_type,
         duration=duration,
     )
+
+
+@app.post("/generate-questions")
+async def generate_questions(
+    file: UploadFile = File(...),
+    interview_type: str = Form(default="general")
+):
+    """
+    Accept a resume (PDF or plain text) and return 5 tailored interview questions.
+    """
+    file_bytes = await file.read()
+    filename   = (file.filename or "").lower()
+
+    # ── Extract text ─────────────────────────────────────────────────────────────
+    resume_text = ""
+    if filename.endswith(".pdf"):
+        try:
+            import pypdf, io
+            reader      = pypdf.PdfReader(io.BytesIO(file_bytes))
+            resume_text = "\n".join(
+                page.extract_text() or "" for page in reader.pages
+            )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Could not parse PDF: {e}")
+    else:
+        try:
+            resume_text = file_bytes.decode("utf-8", errors="replace")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Could not decode file as text")
+
+    resume_text = resume_text.strip()
+    if not resume_text:
+        raise HTTPException(status_code=400, detail="No text could be extracted from the file")
+
+    client = get_client()
+    loop   = asyncio.get_event_loop()
+
+    try:
+        result = await loop.run_in_executor(
+            executor,
+            lambda: resume_agent.run(resume_text, interview_type, client)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Question generation failed: {e}")
+
+    return result
 
 
 @app.post("/transcribe-only")
