@@ -142,7 +142,7 @@ function ScoreRing({ score, size = 120, delay = 0 }) {
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1a2235" strokeWidth={8} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#111113" strokeWidth={8} />
         <circle
           cx={size/2} cy={size/2} r={r} fill="none"
           stroke={color} strokeWidth={8}
@@ -257,7 +257,7 @@ function Timeline({ scores, duration }) {
       <p className="text-sm text-gray-500 mb-5">Click any moment to see the AI's exact feedback.</p>
 
       <div className="relative mb-6">
-        <div className="h-1.5 rounded-full w-full" style={{ background: 'linear-gradient(90deg, #1a2235, #0f1623)' }} />
+        <div className="h-1.5 rounded-full w-full" style={{ background: 'linear-gradient(90deg, #111113, #111113)' }} />
         {moments.map((m, i) => {
           const pct = Math.min((m.timestamp / totalDur) * 100, 98)
           const color = TRACK_COLOR[m.type]
@@ -274,12 +274,12 @@ function Timeline({ scores, duration }) {
                 className="w-3 h-3 rounded-full border-2 transition-all"
                 style={{
                   background: color,
-                  borderColor: '#080c14',
+                  borderColor: '#09090b',
                   boxShadow: selected === i ? `0 0 10px ${color}` : 'none'
                 }}
               />
               {hoveredDot === i && (
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#0f1623] border border-white/10 rounded-lg px-2 py-1 whitespace-nowrap text-xs z-10 pointer-events-none shadow-xl">
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#111113] border border-white/10 rounded-lg px-2 py-1 whitespace-nowrap text-xs z-10 pointer-events-none shadow-xl">
                   {fmt(m.timestamp)} · {m.title}
                 </div>
               )}
@@ -473,7 +473,7 @@ function TranscriptPanel({ fullText, fillerWords }) {
               )}
 
               {/* Transcript text */}
-              <div className="bg-[#080c14] rounded-xl p-5 text-sm leading-8 text-gray-300 max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
+              <div className="bg-[#09090b] rounded-xl p-5 text-sm leading-8 text-gray-300 max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
                 {parts.map((part, i) =>
                   part.highlighted
                     ? (
@@ -622,7 +622,7 @@ export default function Results() {
               <p className="text-xs text-gray-600 mb-4">All three dimensions visualized</p>
               <ResponsiveContainer width="100%" height={240}>
                 <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                  <PolarGrid stroke="#1a2235" />
+                  <PolarGrid stroke="#111113" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 12, fontWeight: 600 }} />
                   <Radar dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.18} strokeWidth={2} dot={{ fill: '#6366f1', r: 4 }} />
                 </RadarChart>
@@ -664,8 +664,8 @@ export default function Results() {
                   <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="word" tick={{ fill: '#d1d5db', fontSize: 13, fontWeight: 600 }} width={80} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: '#0f1623', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f9fafb', fontSize: 13 }}
-                    cursor={{ fill: '#1a2235' }}
+                    contentStyle={{ background: '#111113', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f9fafb', fontSize: 13 }}
+                    cursor={{ fill: '#111113' }}
                     formatter={(v) => [`${v} times`, 'Count']}
                   />
                   <Bar dataKey="count" radius={[0, 8, 8, 0]} maxBarSize={28}>

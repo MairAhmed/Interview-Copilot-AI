@@ -122,7 +122,7 @@ function MiniScoreBar({ label, value, color }) {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-[#131c2e] border border-white/[0.08] rounded-xl p-3 shadow-2xl">
+    <div className="bg-[#18181c] border border-white/[0.08] rounded-xl p-3 shadow-2xl">
       <p className="text-xs text-gray-500 mb-2 font-medium">{label}</p>
       {payload.map(p => (
         <div key={p.dataKey} className="flex items-center gap-2 text-sm">
@@ -261,7 +261,7 @@ export default function Dashboard() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#080c14]">
+      <div className="min-h-screen bg-[#09090b]">
         <Nav />
 
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
@@ -393,7 +393,7 @@ export default function Dashboard() {
                       strokeWidth={2.5}
                       fill={`url(#grad-${l.key})`}
                       dot={{ fill: l.color, r: 4, strokeWidth: 0 }}
-                      activeDot={{ r: 6, fill: l.color, strokeWidth: 2, stroke: '#080c14' }}
+                      activeDot={{ r: 6, fill: l.color, strokeWidth: 2, stroke: '#09090b' }}
                     />
                   ))}
                 </AreaChart>

@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import {
   Brain, Mic, MessageSquare, Target, ArrowRight, Upload,
-  Monitor, CheckCircle, ChevronRight, Zap, Shield, BarChart2,
-  TrendingUp, AlertCircle
+  Monitor, CheckCircle, Zap, Shield, TrendingUp, AlertCircle,
+  BarChart3, Clock, ChevronRight
 } from 'lucide-react'
 
 // ─── Typing headline ───────────────────────────────────────────────────────────
@@ -15,9 +15,9 @@ const HEADLINES = [
 ]
 
 function TypingHeadline() {
-  const [idx, setIdx]           = useState(0)
+  const [idx, setIdx]             = useState(0)
   const [displayed, setDisplayed] = useState('')
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting]   = useState(false)
 
   useEffect(() => {
     const target = HEADLINES[idx]
@@ -26,11 +26,11 @@ function TypingHeadline() {
       return () => clearTimeout(t)
     }
     if (!deleting && displayed.length === target.length) {
-      const t = setTimeout(() => setDeleting(true), 2600)
+      const t = setTimeout(() => setDeleting(true), 2800)
       return () => clearTimeout(t)
     }
     if (deleting && displayed.length > 0) {
-      const t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 16)
+      const t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 14)
       return () => clearTimeout(t)
     }
     if (deleting && displayed.length === 0) {
@@ -42,32 +42,24 @@ function TypingHeadline() {
   return (
     <span>
       {displayed}
-      <span className="inline-block w-[3px] h-[0.9em] bg-indigo-400 ml-1 align-middle rounded-sm"
-        style={{ animation: 'blink 1s step-end infinite' }} />
+      <span
+        className="inline-block w-[3px] h-[0.85em] bg-indigo-400 ml-1 align-middle rounded-sm"
+        style={{ animation: 'blink 1s step-end infinite' }}
+      />
     </span>
   )
 }
 
 // ─── Fade-in-view wrapper ──────────────────────────────────────────────────────
 function FadeIn({ children, delay = 0, className = '', direction = 'up' }) {
-  const ref = useRef(null)
+  const ref    = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
-
-  const variants = {
-    hidden: {
-      opacity: 0,
-      y: direction === 'up' ? 24 : direction === 'down' ? -24 : 0,
-      x: direction === 'left' ? 24 : direction === 'right' ? -24 : 0,
-    },
-    visible: { opacity: 1, y: 0, x: 0 },
-  }
 
   return (
     <motion.div
       ref={ref}
-      variants={variants}
-      initial="hidden"
-      animate={inView ? 'visible' : 'hidden'}
+      initial={{ opacity: 0, y: direction === 'up' ? 24 : direction === 'down' ? -24 : 0, x: direction === 'left' ? 24 : direction === 'right' ? -24 : 0 }}
+      animate={inView ? { opacity: 1, y: 0, x: 0 } : {}}
       transition={{ duration: 0.55, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
     >
@@ -76,39 +68,156 @@ function FadeIn({ children, delay = 0, className = '', direction = 'up' }) {
   )
 }
 
-// ─── Agent cards ───────────────────────────────────────────────────────────────
+// ─── Product preview card (hero visual) ────────────────────────────────────────
+function ProductPreview() {
+  const bars = [
+    { label: 'Technical',     score: 8.8, color: '#818cf8', width: '88%' },
+    { label: 'Communication', score: 8.1, color: '#a78bfa', width: '81%' },
+    { label: 'Confidence',    score: 8.4, color: '#c084fc', width: '84%' },
+  ]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 32, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.45, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="relative max-w-sm mx-auto mt-14 animate-float"
+    >
+      {/* Glow behind the card */}
+      <div
+        className="absolute inset-[-20%] rounded-full opacity-40 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.25) 0%, transparent 70%)' }}
+      />
+
+      <div
+        className="relative rounded-2xl text-left overflow-hidden"
+        style={{
+          background: 'rgba(17,17,19,0.85)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 48px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Top bar */}
+        <div
+          className="px-5 py-3 flex items-center justify-between"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+          </div>
+          <span className="text-[11px] text-gray-600 font-medium">Interview Report</span>
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-gray-700" />
+            <span className="text-[11px] text-gray-600">4m 32s</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          {/* Score header */}
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold mb-1">Overall Score</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black text-white leading-none">8.4</span>
+                <span className="text-sm text-gray-600">/10</span>
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ color: '#4ade80', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.18)' }}
+                >
+                  +1.2 ↑
+                </span>
+              </div>
+            </div>
+            <div
+              className="text-[10px] font-medium px-2.5 py-1 rounded-full"
+              style={{ color: '#818cf8', background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.18)' }}
+            >
+              Technical — SWE
+            </div>
+          </div>
+
+          {/* Score bars */}
+          <div className="space-y-2.5 mb-5">
+            {bars.map(({ label, score, color, width }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-[11px] text-gray-500 w-28 shrink-0">{label}</span>
+                <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width, background: color, boxShadow: `0 0 8px ${color}60` }}
+                  />
+                </div>
+                <span className="text-[11px] font-bold w-6 text-right tabular-nums" style={{ color }}>{score}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Top issue */}
+          <div
+            className="rounded-xl p-3.5"
+            style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+          >
+            <p className="text-[10px] text-red-500 uppercase tracking-widest font-semibold mb-1">Top Issue</p>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Said <span className="text-amber-300 font-semibold">"I think"</span> 9× — undermining technically correct answers with your own words
+            </p>
+          </div>
+
+          {/* Agent badges */}
+          <div className="flex gap-1.5 mt-3.5 flex-wrap">
+            {['Technical ✓', 'Communication ✓', 'Confidence ✓'].map(label => (
+              <span
+                key={label}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                style={{ color: '#6b7280', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Agents ────────────────────────────────────────────────────────────────────
 const AGENTS = [
   {
     icon: Brain,
-    color: '#6366f1',
-    gradient: 'from-indigo-500/10 to-indigo-500/0',
+    color: '#818cf8',
+    bg: 'rgba(129,140,248,0.08)',
     label: 'Technical',
-    weight: '40%',
-    blurb: 'Scores your depth, accuracy, Big-O awareness, and system design completeness — the things interviewers notice and never say.',
+    weight: '40% of score',
+    blurb: 'Scores depth, accuracy, Big-O awareness, and system design completeness — the things interviewers notice and never tell you.',
     checks: ['Concept accuracy', 'Complexity analysis', 'Edge case coverage', 'System design gaps'],
   },
   {
     icon: MessageSquare,
-    color: '#8b5cf6',
-    gradient: 'from-violet-500/10 to-violet-500/0',
+    color: '#a78bfa',
+    bg: 'rgba(167,139,250,0.08)',
     label: 'Communication',
-    weight: '35%',
-    blurb: "Detects whether you're burying the punchline, rambling, or trailing off — and tells you the exact timestamp where it happened.",
+    weight: '35% of score',
+    blurb: "Detects if you're burying the punchline, rambling, or trailing off — with the exact timestamp where it happened.",
     checks: ['BLUF vs bottom-heavy', 'Answer structure', 'Rambling detection', 'Closing statements'],
   },
   {
     icon: Mic,
-    color: '#ec4899',
-    gradient: 'from-pink-500/10 to-pink-500/0',
+    color: '#c084fc',
+    bg: 'rgba(192,132,252,0.08)',
     label: 'Confidence',
-    weight: '25%',
-    blurb: "Counts every 'I think', 'I guess', and 'um' — especially the ones right before a correct answer. You know the material. Stop signaling that you don't.",
+    weight: '25% of score',
+    blurb: "Counts every 'I think', 'I guess', and 'um' — especially the ones right before a correct answer. You know the material. Stop signaling you don't.",
     checks: ['Filler word count', 'Hedging language', 'Upward inflection', 'Self-undermining phrases'],
   },
   {
     icon: Target,
-    color: '#f59e0b',
-    gradient: 'from-amber-500/10 to-amber-500/0',
+    color: '#fb923c',
+    bg: 'rgba(251,146,60,0.08)',
     label: 'Synthesizer',
     weight: 'Final synthesis',
     blurb: 'Combines all three agents into a ranked 5-item action plan. Each item is specific enough to act on before your next interview.',
@@ -122,32 +231,32 @@ const MODES = [
     icon: Mic,
     title: 'Live Practice',
     desc: 'Answer AI-generated questions in a mock interview. Get scored immediately after.',
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-500/10',
-    border: 'border-indigo-500/15',
+    color: '#818cf8',
+    bg: 'rgba(129,140,248,0.08)',
+    border: 'rgba(129,140,248,0.16)',
   },
   {
     icon: Upload,
     title: 'Upload a Recording',
-    desc: 'Drop in a Zoom, Teams, phone recording, or any audio/video file.',
-    color: 'text-violet-400',
-    bg: 'bg-violet-500/10',
-    border: 'border-violet-500/15',
+    desc: 'Drop in a Zoom, Teams, phone recording, or any audio/video file for analysis.',
+    color: '#a78bfa',
+    bg: 'rgba(167,139,250,0.08)',
+    border: 'rgba(167,139,250,0.16)',
   },
   {
     icon: Monitor,
     title: 'Capture Live Meeting',
-    desc: 'Run alongside a live Zoom/Teams call — captures both sides of the conversation in real time.',
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/10',
-    border: 'border-pink-500/15',
+    desc: 'Run alongside a live Zoom/Teams call — captures both sides in real time.',
+    color: '#c084fc',
+    bg: 'rgba(192,132,252,0.08)',
+    border: 'rgba(192,132,252,0.16)',
   },
 ]
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function Landing() {
-  const navigate  = useNavigate()
-  const [name, setName]       = useState('')
+  const navigate = useNavigate()
+  const [name, setName]         = useState('')
   const [nameError, setNameError] = useState(false)
 
   const handleStart = (e) => {
@@ -159,19 +268,30 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080c14] overflow-x-hidden">
-      <style>{`
-        @keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: 0 } }
-      `}</style>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: '#09090b' }}>
 
-      {/* ── Nav ──────────────────────────────────────────────────────── */}
-      <nav className="border-b border-white/[0.05] px-6 md:px-10 py-4 flex items-center justify-between sticky top-0 z-50 bg-[#080c14]/80 backdrop-blur-xl">
+      {/* ── Nav ────────────────────────────────────────────────────── */}
+      <nav
+        className="sticky top-0 z-50 px-6 md:px-10 py-4 flex items-center justify-between"
+        style={{
+          background: 'rgba(9,9,11,0.85)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/40">
-            <Brain className="w-[18px] h-[18px] text-white" />
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+              boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
+            }}
+          >
+            <Brain className="w-[17px] h-[17px] text-white" />
           </div>
-          <span className="font-bold text-[15px] tracking-tight">Interview Copilot</span>
+          <span className="font-bold text-[15px] tracking-tight text-white">Interview Copilot</span>
         </div>
+
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -179,7 +299,7 @@ export default function Landing() {
               if (stored) navigate('/dashboard')
               else document.getElementById('hero-name')?.focus()
             }}
-            className="hidden sm:block text-sm text-gray-500 hover:text-white transition-colors px-3 py-1.5"
+            className="hidden sm:block text-sm text-gray-500 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-white/[0.05]"
           >
             Sign in
           </button>
@@ -192,47 +312,70 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative px-6 md:px-10 pt-24 pb-28 hero-mesh">
+      {/* ── Hero ───────────────────────────────────────────────────── */}
+      <section className="relative px-6 md:px-10 pt-20 pb-10 hero-mesh overflow-hidden">
         {/* Background orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] opacity-30"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.25) 0%, transparent 65%)' }} />
-          <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] opacity-20"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(167,139,250,0.3) 0%, transparent 65%)' }} />
+          <div
+            className="absolute top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px]"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, transparent 65%)' }}
+          />
+          <div
+            className="absolute top-[5%] right-[0%] w-[500px] h-[500px]"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(139,92,246,0.10) 0%, transparent 60%)' }}
+          />
         </div>
 
-        <div className="relative max-w-3xl mx-auto text-center">
+        {/* Two-column layout for hero on large screens */}
+        <div className="relative max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+          {/* Left: copy + CTA */}
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.08] tracking-tight mb-6"
-              style={{ minHeight: '1.2em' }}>
+            <div
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-6"
+              style={{ color: '#818cf8', background: 'rgba(129,140,248,0.10)', border: '1px solid rgba(129,140,248,0.20)' }}
+            >
+              <Zap className="w-3 h-3" />
+              4 AI agents · Real-time analysis
+            </div>
+
+            <h1
+              className="text-5xl md:text-6xl font-black leading-[1.06] tracking-tight mb-6 text-white"
+              style={{ minHeight: '2.2em' }}
+            >
               <TypingHeadline />
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-400 max-w-xl mx-auto leading-relaxed mb-10">
-              Four AI agents analyze your interview — scoring technical depth, communication, and confidence — and hand you a specific action plan. Not vague advice. Exact fixes.
+            <p className="text-lg text-gray-400 leading-relaxed mb-10 max-w-lg">
+              Four AI agents analyze your interview — scoring technical depth, communication, and confidence — then hand you a specific action plan. Not vague advice. Exact fixes.
             </p>
 
-            {/* Name CTA */}
-            <form onSubmit={handleStart} className="max-w-sm mx-auto space-y-3">
-              <input
-                id="hero-name"
-                type="text"
-                placeholder="Your first name"
-                value={name}
-                onChange={e => { setName(e.target.value); setNameError(false) }}
-                className={`w-full bg-white/[0.05] border rounded-xl px-5 py-3.5 text-white placeholder-gray-600 focus:outline-none transition-all text-center font-medium text-[15px] ${
-                  nameError
-                    ? 'border-red-500/50 focus:border-red-500 bg-red-500/5'
-                    : 'border-white/[0.08] focus:border-indigo-500/60 focus:bg-white/[0.07]'
-                }`}
-              />
+            {/* CTA form */}
+            <form onSubmit={handleStart} className="max-w-sm space-y-3">
+              <div className="relative">
+                <input
+                  id="hero-name"
+                  type="text"
+                  placeholder="Your first name"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setNameError(false) }}
+                  className={`w-full rounded-xl px-5 py-3.5 text-white font-medium text-[15px] text-center transition-all focus:outline-none ${
+                    nameError
+                      ? 'border border-red-500/50 focus:border-red-500'
+                      : 'border border-white/[0.08] focus:border-indigo-500/60'
+                  }`}
+                  style={{
+                    background: nameError ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.05)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.4) inset',
+                  }}
+                />
+              </div>
               {nameError && (
-                <p className="text-xs text-red-400 flex items-center justify-center gap-1.5">
+                <p className="text-xs text-red-400 flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5" /> Enter your name to continue
                 </p>
               )}
@@ -243,7 +386,7 @@ export default function Landing() {
                 Open your dashboard
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </button>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 text-center">
                 Or{' '}
                 <button
                   type="button"
@@ -254,35 +397,39 @@ export default function Landing() {
                 </button>
               </p>
             </form>
+
+            {/* Trust row */}
+            <div className="flex items-center gap-5 mt-8 flex-wrap">
+              {[
+                { icon: Shield,   text: 'Runs locally — fully private' },
+                { icon: BarChart3, text: 'Scored on 3 dimensions' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <Icon className="w-3.5 h-3.5 text-gray-700" />
+                  {text}
+                </div>
+              ))}
+            </div>
           </motion.div>
 
-          {/* Social proof row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="flex items-center justify-center gap-6 mt-14 flex-wrap"
-          >
-            {[
-              { icon: Zap,       text: '4 AI agents' },
-              { icon: BarChart2, text: '3 dimensions scored' },
-              { icon: Shield,    text: 'Runs locally — fully private' },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 text-sm text-gray-500">
-                <Icon className="w-4 h-4 text-gray-600" />
-                {text}
-              </div>
-            ))}
-          </motion.div>
+          {/* Right: product preview */}
+          <div className="hidden lg:block">
+            <ProductPreview />
+          </div>
+        </div>
+
+        {/* Mobile: product preview below CTA */}
+        <div className="lg:hidden max-w-sm mx-auto">
+          <ProductPreview />
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="divider-glow mx-auto max-w-5xl" />
+      {/* ── Divider ──────────────────────────────────────────────────── */}
+      <div className="divider-glow max-w-5xl mx-auto mt-12" />
 
       {/* ── How it works ─────────────────────────────────────────────── */}
       <section className="px-6 md:px-10 py-24 max-w-5xl mx-auto">
-        <FadeIn className="text-center mb-16">
+        <FadeIn className="text-center mb-14">
           <p className="section-label">How it works</p>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight">From recording to action plan in under a minute</h2>
         </FadeIn>
@@ -290,36 +437,39 @@ export default function Landing() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
             {
-              n: '1',
-              icon: Mic,
+              n: '01', icon: Mic, color: '#818cf8',
               title: 'Record your interview',
               body: 'Practice live with AI questions, upload a Zoom/Teams recording, or capture a real interview happening right now alongside your call.',
             },
             {
-              n: '2',
-              icon: Brain,
+              n: '02', icon: Brain, color: '#a78bfa',
               title: 'Agents analyze in parallel',
               body: 'Technical, Communication, and Confidence agents run simultaneously on your transcript. The Synthesizer combines all three into one report.',
             },
             {
-              n: '3',
-              icon: TrendingUp,
+              n: '03', icon: TrendingUp, color: '#c084fc',
               title: 'Get your action plan',
-              body: 'Not "be more confident." Instead: the exact moments, word counts, and a ranked 5-step plan to fix them before your next interview.',
+              body: "Not 'be more confident.' Instead: the exact moments, word counts, and a ranked 5-step plan to fix them before your next interview.",
             },
           ].map((step, i) => (
             <FadeIn key={step.n} delay={i * 0.1}>
-              <div className="landing-card h-full flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-600/20 flex items-center justify-center text-xs font-black text-indigo-400">
-                    {step.n}
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center">
-                    <step.icon className="w-4 h-4 text-gray-400" />
-                  </div>
+              <div className="landing-card h-full flex flex-col gap-4 relative overflow-hidden">
+                {/* Step number watermark */}
+                <span
+                  className="absolute top-4 right-5 font-black tabular-nums select-none pointer-events-none"
+                  style={{ fontSize: '3.5rem', lineHeight: 1, color: 'rgba(255,255,255,0.03)' }}
+                >
+                  {step.n}
+                </span>
+
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: step.color + '14' }}
+                >
+                  <step.icon className="w-4.5 h-4.5" style={{ color: step.color, width: 18, height: 18 }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[15px] mb-2">{step.title}</h3>
+                  <h3 className="font-bold text-[15px] mb-2 text-white">{step.title}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed">{step.body}</p>
                 </div>
               </div>
@@ -328,19 +478,18 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="divider-glow mx-auto max-w-5xl" />
+      <div className="divider-glow max-w-5xl mx-auto" />
 
       {/* ── Agents ───────────────────────────────────────────────────── */}
       <section className="px-6 md:px-10 py-24 max-w-5xl mx-auto">
-        <FadeIn className="mb-16">
+        <FadeIn className="mb-14">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <p className="section-label">The AI agents</p>
               <h2 className="text-3xl md:text-4xl font-black tracking-tight">Four specialists. One report.</h2>
             </div>
-            <p className="text-sm text-gray-500 max-w-xs leading-relaxed md:text-right">
-              Each agent runs independently, so there's no cross-contamination. You get four honest opinions.
+            <p className="text-sm text-gray-600 max-w-xs leading-relaxed md:text-right">
+              Each agent runs independently — no cross-contamination. Four honest opinions.
             </p>
           </div>
         </FadeIn>
@@ -348,26 +497,26 @@ export default function Landing() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {AGENTS.map((a, i) => (
             <FadeIn key={a.label} delay={i * 0.08}>
-              <div className={`landing-card h-full bg-gradient-to-br ${a.gradient} flex flex-col gap-5`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background: a.color + '18' }}>
-                      <a.icon className="w-5 h-5" style={{ color: a.color }} />
-                    </div>
-                    <div>
-                      <p className="font-bold">{a.label} Agent</p>
-                      <p className="text-xs text-gray-600">{a.weight === 'Final synthesis' ? 'Final synthesis' : `${a.weight} of score`}</p>
-                    </div>
+              <div className="landing-card h-full flex flex-col gap-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: a.bg }}
+                  >
+                    <a.icon className="w-5 h-5" style={{ color: a.color }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{a.label} Agent</p>
+                    <p className="text-xs text-gray-600 mt-0.5">{a.weight}</p>
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-400 leading-relaxed">{a.blurb}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{a.blurb}</p>
 
-                <div className="grid grid-cols-2 gap-1.5 mt-auto">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-3 mt-auto pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {a.checks.map(c => (
-                    <div key={c} className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <CheckCircle className="w-3 h-3 shrink-0" style={{ color: a.color + 'bb' }} />
+                    <div key={c} className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <CheckCircle className="w-3 h-3 shrink-0" style={{ color: a.color + '90' }} />
                       {c}
                     </div>
                   ))}
@@ -378,12 +527,11 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="divider-glow mx-auto max-w-5xl" />
+      <div className="divider-glow max-w-5xl mx-auto" />
 
       {/* ── Recording modes ───────────────────────────────────────────── */}
       <section className="px-6 md:px-10 py-24 max-w-5xl mx-auto">
-        <FadeIn className="text-center mb-16">
+        <FadeIn className="text-center mb-14">
           <p className="section-label">Three ways to use it</p>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight">Works with how you already interview</h2>
         </FadeIn>
@@ -391,30 +539,37 @@ export default function Landing() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {MODES.map((m, i) => (
             <FadeIn key={m.title} delay={i * 0.1}>
-              <div className={`landing-card h-full border ${m.border}`}>
-                <div className={`w-10 h-10 ${m.bg} rounded-xl flex items-center justify-center mb-4`}>
-                  <m.icon className={`w-5 h-5 ${m.color}`} />
+              <div
+                className="landing-card h-full flex flex-col gap-4"
+                style={{ borderColor: m.border }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: m.bg }}
+                >
+                  <m.icon className="w-5 h-5" style={{ color: m.color }} />
                 </div>
-                <h3 className="font-bold mb-2">{m.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{m.desc}</p>
+                <div>
+                  <h3 className="font-bold text-white mb-2">{m.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{m.desc}</p>
+                </div>
               </div>
             </FadeIn>
           ))}
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="divider-glow mx-auto max-w-5xl" />
+      <div className="divider-glow max-w-5xl mx-auto" />
 
       {/* ── Final CTA ─────────────────────────────────────────────────── */}
-      <section className="px-6 md:px-10 py-28 max-w-2xl mx-auto text-center">
-        <FadeIn>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+      <section className="px-6 md:px-10 py-28 text-center">
+        <FadeIn className="max-w-xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-5 text-white">
             Stop guessing.<br />
             <span className="gradient-text">Start improving.</span>
           </h2>
-          <p className="text-gray-400 mb-10 leading-relaxed max-w-md mx-auto">
-            Every candidate who doesn't get the job deserves to know exactly why. This is that tool.
+          <p className="text-gray-500 mb-10 leading-relaxed">
+            Every candidate who doesn't get the job deserves to know exactly why.
           </p>
           <form onSubmit={handleStart} className="max-w-xs mx-auto space-y-3">
             <input
@@ -422,7 +577,8 @@ export default function Landing() {
               placeholder="Your first name"
               value={name}
               onChange={e => { setName(e.target.value); setNameError(false) }}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-5 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 transition-all text-center font-medium text-[15px]"
+              className="w-full rounded-xl px-5 py-3.5 text-white font-medium text-[15px] text-center transition-all focus:outline-none border border-white/[0.08] focus:border-indigo-500/60"
+              style={{ background: 'rgba(255,255,255,0.05)', boxShadow: '0 1px 2px rgba(0,0,0,0.4) inset' }}
             />
             <button
               type="submit"
@@ -436,13 +592,16 @@ export default function Landing() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.05] px-6 py-8">
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }} className="px-6 py-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
+            <div
+              className="w-6 h-6 rounded-md flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #7c3aed)' }}
+            >
               <Brain className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-sm font-semibold">Interview Copilot</span>
+            <span className="text-sm font-semibold text-white">Interview Copilot</span>
           </div>
           <p className="text-xs text-gray-700">AI-powered interview coaching · All processing runs locally</p>
         </div>

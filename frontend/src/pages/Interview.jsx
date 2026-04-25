@@ -359,7 +359,7 @@ export default function Interview() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#080c14] flex flex-col">
+      <div className="min-h-screen bg-[#09090b] flex flex-col">
         <Nav />
 
         <div className="flex-1 flex flex-col">
@@ -417,7 +417,7 @@ export default function Interview() {
                             handleResumeUpload(resumeFile)
                           }
                         }}
-                        className="w-full bg-[#0f1623] border border-white/[0.08] rounded-xl px-4 py-3.5 appearance-none text-white focus:outline-none focus:border-indigo-500/50 transition-colors pr-10 text-sm font-medium"
+                        className="w-full bg-[#111113] border border-white/[0.08] rounded-xl px-4 py-3.5 appearance-none text-white focus:outline-none focus:border-indigo-500/50 transition-colors pr-10 text-sm font-medium"
                       >
                         {INTERVIEW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
@@ -605,7 +605,7 @@ export default function Interview() {
                 className="flex-1 flex flex-col"
               >
                 {/* Interview room top bar */}
-                <div className="border-b border-white/[0.04] px-6 py-3 flex items-center justify-between bg-[#0a0f1a]">
+                <div className="border-b border-white/[0.04] px-6 py-3 flex items-center justify-between bg-[#0d0d10]">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                     <span className="text-sm text-red-400 font-semibold font-mono">{fmt(recordingTime)}</span>
@@ -687,7 +687,7 @@ export default function Interview() {
                   )}
 
                   {/* Waveform */}
-                  <div className="w-full card bg-[#0a0f1a] border-white/[0.04] py-5">
+                  <div className="w-full card bg-[#0d0d10] border-white/[0.04] py-5">
                     <Waveform active={true} bars={bars} />
                   </div>
 
@@ -828,7 +828,7 @@ export default function Interview() {
                       <select
                         value={interviewType}
                         onChange={e => setInterviewType(e.target.value)}
-                        className="w-full bg-[#0f1623] border border-white/[0.08] rounded-xl px-4 py-3.5 appearance-none text-white focus:outline-none focus:border-indigo-500/50 text-sm font-medium pr-10"
+                        className="w-full bg-[#111113] border border-white/[0.08] rounded-xl px-4 py-3.5 appearance-none text-white focus:outline-none focus:border-indigo-500/50 text-sm font-medium pr-10"
                       >
                         {INTERVIEW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
