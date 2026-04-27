@@ -79,9 +79,10 @@
 
 ## 4. LIVE INTERVIEW — RECORDING (1 minute 30 seconds)
 
-*Navigate to Interview page. Select Technical — SWE.*
+*Navigate to Interview page. Select Data Science.*
 
-> "Now let's do a live mock interview. I'll select Software Engineering.
+> "Now let's do a live mock interview. I'll select Data Scientist,
+> which is exactly the role I'm targeting.
 > The system generates five tailored questions for this interview type."
 
 *Show the questions briefly, then click Begin Interview. Waveform appears.*
@@ -92,19 +93,21 @@
 
 **Answer Q1** — speak naturally with some hedges (30–40 seconds):
 
-> "So, um, a stack is basically a data structure — I think it's LIFO, last in first out.
-> You'd use it for, like, undo operations or I guess parsing parentheses in code.
-> A queue is FIFO, so you'd use that for job scheduling."
+> "So, um, the difference between supervised and unsupervised learning is basically —
+> I think in supervised learning you have labeled data, so the model learns to predict
+> an output from inputs. Like, predicting house prices or classifying emails as spam.
+> Unsupervised is where you don't have labels — you're I guess trying to find
+> patterns or clusters in the data on your own."
 
 *Point to the live counter ticking up.*
 
-> "Watch — three fillers already. 'Um', 'basically', 'I think'. In real time."
+> "Watch — three fillers already. 'Um', 'basically', 'I guess'. In real time."
 
 *Click Next, answer Q2 briefly (20 seconds):*
 
-> "For a URL shortener, I'd hash the long URL, store the mapping in a database,
-> and redirect on lookup. I'm not totally sure about the best hashing approach
-> but that's my starting point."
+> "To handle class imbalance I'd probably use oversampling — like SMOTE —
+> or I think you can adjust class weights in the model. I'm not totally sure
+> which is better in every case but those are my go-to approaches."
 
 *Click Finish & Analyze.*
 
@@ -230,8 +233,9 @@ Technical  Comm  Confidence   ← 3 Claude agents, parallel
 > The Synthesizer then weighs them. The parallelism is a performance bonus."
 
 **"What interview types does it support?"**
-> "Six: Software Engineering, Behavioral, Data Science, Product Management, Leadership, and Finance.
-> The Technical agent adjusts its evaluation criteria per type."
+> "Six: Data Science, Software Engineering, Behavioral, Product Management, Leadership, and Finance.
+> The Technical agent adjusts its evaluation criteria per type — for Data Science it checks
+> for things like model selection reasoning, statistical rigor, and ML best practices."
 
 **"Is the transcription accurate?"**
 > "Whisper is state of the art for speech recognition. It handles accents, pacing,
