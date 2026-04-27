@@ -1,16 +1,23 @@
 import os
 import asyncio
+import json
+import base64
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 import anthropic
 from dotenv import load_dotenv
 
+# Allow OAuth over plain HTTP in local dev
+os.environ.setdefault('OAUTHLIB_INSECURE_TRANSPORT', '1')
+
 from services.transcription import transcribe_audio
 from agents import technical, communication, confidence, synthesizer, resume as resume_agent
+from agents import email_parser
+from services.gmail import create_auth_url, pop_flow, fetch_interview_emails
 from models import AnalysisResult, TranscriptSegment, AgentScore, TimelineMoment, FillerWordCount
 
 # Load .env from project root (one level above backend/)
@@ -208,7 +215,7 @@ async def ask_claude(body: AskRequest):
 
     def stream():
         with client.messages.stream(
-            model="claude-3-5-haiku-20241022",
+            model="claude-sonnet-4-6",
             max_tokens=256,
             system=system,
             messages=[{"role": "user", "content": body.question}],
@@ -217,6 +224,82 @@ async def ask_claude(body: AskRequest):
                 yield text
 
     return StreamingResponse(stream(), media_type="text/plain")
+
+
+# ── Gmail OAuth endpoints ──────────────────────────────────────────────────────
+
+def _gmail_configured() -> bool:
+    return bool(os.getenv("GOOGLE_CLIENT_ID") and os.getenv("GOOGLE_CLIENT_SECRET"))
+
+@app.get("/gmail/auth-url")
+def gmail_auth_url():
+    """Return the Google OAuth URL for the frontend to open in a popup."""
+    if not _gmail_configured():
+        raise HTTPException(status_code=501, detail="Gmail integration not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env")
+    url = create_auth_url()
+    return {"url": url}
+
+
+@app.get("/gmail/callback")
+async def gmail_callback(code: str = None, state: str = None, error: str = None):
+    """
+    Google redirects here after user grants access.
+    Fetches emails, parses with Claude, then posts results back to the
+    opener window via postMessage and closes the popup.
+    """
+    def _send(payload_dict: dict) -> HTMLResponse:
+        payload_json = json.dumps(payload_dict)
+        payload_b64  = base64.b64encode(payload_json.encode()).decode()
+        html = f"""<!DOCTYPE html><html><body><script>
+            try {{
+                var data = JSON.parse(atob('{payload_b64}'));
+                if (window.opener) {{ window.opener.postMessage(data, '*'); }}
+            }} catch(e) {{}}
+            window.close();
+        </script></body></html>"""
+        return HTMLResponse(html)
+
+    if error or not code:
+        return _send({"gmailError": error or "access_denied"})
+
+    if not _gmail_configured():
+        return _send({"gmailError": "not_configured"})
+
+    try:
+        # Reuse the exact flow object that generated the auth URL (carries the
+        # PKCE code_verifier so Google's token exchange succeeds).
+        flow = pop_flow(state) if state else None
+        if flow is None:
+            from services.gmail import get_flow as _get_flow
+            flow = _get_flow()
+        flow.fetch_token(code=code)
+        credentials = flow.credentials
+    except Exception as e:
+        return _send({"gmailError": f"token_exchange_failed: {e}"})
+
+    loop = asyncio.get_event_loop()
+    try:
+        emails = await loop.run_in_executor(executor, lambda: fetch_interview_emails(credentials))
+    except Exception as e:
+        return _send({"gmailError": f"gmail_fetch_failed: {e}"})
+
+    if not emails:
+        return _send({"gmailInterviews": []})
+
+    client = get_client()
+    try:
+        interviews = await loop.run_in_executor(
+            executor, lambda: email_parser.run(emails, client)
+        )
+    except Exception as e:
+        return _send({"gmailError": f"parse_failed: {e}"})
+
+    return _send({"gmailInterviews": interviews})
+
+
+@app.get("/gmail/status")
+def gmail_status():
+    return {"configured": _gmail_configured()}
 
 
 @app.post("/transcribe-only")
