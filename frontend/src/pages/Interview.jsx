@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Mic, Square, Upload, Brain, ChevronDown, ArrowRight,
+  Mic, Square, Upload, Brain, ChevronDown, ChevronRight, ArrowRight,
   CheckCircle, Sparkles, Monitor, AlertCircle, Play, Info,
   FileText, X, Loader2, Wand2
 } from 'lucide-react'
@@ -205,7 +205,8 @@ export default function Interview() {
   const [resumeFile, setResumeFile]         = useState(null)
   const [resumeLoading, setResumeLoading]   = useState(false)
   const [resumeError, setResumeError]       = useState(null)
-  const [tailoredData, setTailoredData]     = useState(null)  // { questions, role, key_skills }
+  const [tailoredData, setTailoredData]     = useState(null)  // { questions, ideal_answers, role, key_skills }
+  const [expandedAnswer, setExpandedAnswer] = useState(null)  // index of open ideal answer
 
   const recorderRef    = useRef(null)
   const chunksRef      = useRef([])
@@ -827,13 +828,37 @@ export default function Interview() {
                   </div>
 
                   {recordMode === 'live' && (
-                    <div className="card">
-                      {questions.map((q, i) => (
-                        <div key={i} className={clsx('flex gap-3 text-sm py-2.5', i < questions.length - 1 && 'border-b border-white/[0.04]')}>
-                          <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                          <span className="text-gray-400">{q}</span>
+                    <div className="card divide-y divide-white/[0.04]">
+                      {tailoredData?.ideal_answers && (
+                        <div className="flex items-center gap-2 pb-3">
+                          <Wand2 className="w-3.5 h-3.5 text-indigo-400" />
+                          <p className="text-xs text-indigo-400 font-semibold">Tap any question to see the ideal answer</p>
                         </div>
-                      ))}
+                      )}
+                      {questions.map((q, i) => {
+                        const idealAnswer = tailoredData?.ideal_answers?.[i]
+                        const isOpen = expandedAnswer === i
+                        return (
+                          <div key={i} className="py-2.5">
+                            <button
+                              className="w-full flex gap-3 text-sm text-left"
+                              onClick={() => idealAnswer && setExpandedAnswer(isOpen ? null : i)}
+                            >
+                              <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                              <span className={clsx('text-gray-400 leading-relaxed flex-1', idealAnswer && 'group-hover:text-gray-300')}>{q}</span>
+                              {idealAnswer && (
+                                <ChevronRight className={clsx('w-4 h-4 text-gray-600 shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-90')} />
+                              )}
+                            </button>
+                            {idealAnswer && isOpen && (
+                              <div className="mt-2 ml-7 p-3 rounded-xl bg-indigo-600/8 border border-indigo-600/20">
+                                <p className="text-[11px] text-indigo-400 font-semibold uppercase tracking-wider mb-1.5">Ideal Answer</p>
+                                <p className="text-sm text-gray-300 leading-relaxed">{idealAnswer}</p>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 
