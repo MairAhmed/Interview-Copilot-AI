@@ -1,208 +1,263 @@
-# Interview Copilot — Demo Script
-**Total time: ~7 minutes**
+# Interview Copilot AI — Presentation Script
+**Total time: 7 minutes | Mair Ahmed | Gen AI Capstone**
 
 ---
 
-## BEFORE YOU START (setup checklist)
+## SETUP CHECKLIST (do this before walking up)
 - [ ] Backend running: `cd backend && python -m uvicorn main:app --reload --port 8000`
 - [ ] Frontend running: `cd frontend && npm run dev` → open http://localhost:5173
-- [ ] Browser at http://localhost:5173, fullscreen
-- [ ] Chrome DevTools closed
-- [ ] Mic working and not muted
-- [ ] Fallback: Results page works even WITHOUT backend (uses built-in demo data)
-
-**Fallback plan if backend fails:** Navigate directly to `/results` — it auto-loads the demo result. Still looks perfect.
+- [ ] Browser open at http://localhost:5173, fullscreen, DevTools closed
+- [ ] Mic working
+- [ ] Name set to "Mair Ahmed", role to "Data Scientist", date to May 10 on the landing page
+- [ ] **Fallback:** If backend crashes, navigate to `/results` — it loads from localStorage and still looks great
 
 ---
 
-## OPENING (30 seconds)
-*Stand, make eye contact, then open the laptop.*
+## 1. HOOK — THE PROBLEM (30 seconds)
 
-> "Every year, millions of people go through interviews and get rejected.
-> And every single one of them gets the same thing back from the company:
+*Stand, make eye contact, then turn to the screen.*
+
+> "Every year, millions of people go through job interviews and get rejected.
+> And every single one of them gets back the exact same thing from the company —
 > a rejection email. No feedback. No reason. Nothing.
 >
-> That's the problem Interview Copilot solves."
-
-*Click to the home screen.*
-
-> "This is a multi-agent AI system that sits in on your interview,
-> analyzes every answer across three dimensions, and tells you
-> exactly what went wrong — and what to fix."
+> You have no idea if it was your technical answers, the way you communicated,
+> or the fact that you said 'I think' and 'um' forty times.
+>
+> That's the problem. And that's what Interview Copilot solves."
 
 ---
 
-## SHOW THE HOME SCREEN (30 seconds)
+## 2. THE SOLUTION — LANDING PAGE (30 seconds)
 
-Point to the 4 agent pills at the bottom:
+*Show the landing page. Point to the four agent icons.*
 
-> "The system uses four specialized AI agents — not one generic chatbot.
-> Each agent has a specific job:
-> the Technical agent evaluates depth and accuracy,
-> the Communication agent checks structure and clarity,
-> the Confidence agent scans for hedging language and filler words,
-> and the Synthesizer combines everything into a prioritized action plan."
+> "Interview Copilot is a multi-agent AI system that sits in on your mock interview,
+> analyzes every answer across three dimensions, and tells you exactly what went wrong —
+> and what to fix before the real thing.
+>
+> The system uses four specialized Claude agents — not one generic chatbot.
+> Each has a specific job:
+> the **Technical agent** checks depth and accuracy,
+> the **Communication agent** evaluates structure and clarity,
+> the **Confidence agent** scans for hedging language and filler words,
+> and the **Synthesizer** combines everything into a ranked action plan.
+>
+> I'll type in my name, my target role, and my interview date."
 
-> "You can upload a recording from Zoom or Teams — or do a live mock interview right now.
-> I'm going to do the live version."
+*Type name, role (Data Scientist), pick a date. Click Start.*
 
 ---
 
-## LIVE MOCK INTERVIEW (2 minutes)
+## 3. THE DASHBOARD (45 seconds)
 
-*Click "Start Mock Interview"*
+*Dashboard loads. Point to the countdown banner first.*
 
-> "I'll select Technical — Software Engineering, which is what most CS students are interviewing for."
+> "This is the dashboard. Notice the countdown banner at the top —
+> it pulled my interview date from the landing page and it's telling me
+> I have 13 days to prepare. One click takes me straight into practice mode.
+>
+> Below that are my past sessions — scores, trends, what my weakest area is.
+> The chart shows my trajectory across sessions. I can toggle between overall,
+> technical, communication, and confidence.
+>
+> And here — the Gmail button."
 
-*Show the questions briefly.*
+*Click Sync Gmail. Show the popup opening.*
 
-> "The system shows me the questions upfront so I know what to expect — just like real interview prep."
+> "This is one of my favorite features. I can connect my Google account
+> and the system scans my inbox using the Gmail API, sends the emails
+> to Claude, and automatically extracts any upcoming interviews —
+> company, role, date, time, interviewer name — all pulled from natural language email text.
+> No forms to fill. It just reads your inbox and finds them."
 
-*Click "Begin Interview" — microphone starts, waveform appears.*
+*If Gmail interviews appear, click one to set countdown. If not, close modal and move on.*
 
-**Answer Q1** (30–45 seconds, answer naturally but imperfectly — use some hedging):
+> "Click an interview and the countdown snaps to that date automatically."
+
+---
+
+## 4. LIVE INTERVIEW — RECORDING (1 minute 30 seconds)
+
+*Navigate to Interview page. Select Technical — SWE.*
+
+> "Now let's do a live mock interview. I'll select Software Engineering.
+> The system generates five tailored questions for this interview type."
+
+*Show the questions briefly, then click Begin Interview. Waveform appears.*
+
+> "Notice the live filler word counter in the corner —
+> it's listening in real time using the browser's Speech Recognition API,
+> no extra API key, no server call. Every filler word ticks up as I speak."
+
+**Answer Q1** — speak naturally with some hedges (30–40 seconds):
 
 > "So, um, a stack is basically a data structure — I think it's LIFO, last in first out.
-> You'd use it for, like, undo operations in a text editor, or I guess for parsing parentheses.
-> A queue is first in first out, so you'd use that for, like, job scheduling or print queues."
+> You'd use it for, like, undo operations or I guess parsing parentheses in code.
+> A queue is FIFO, so you'd use that for job scheduling."
 
-*Click "Next Question"*
+*Point to the live counter ticking up.*
 
-**Answer Q2** (30–45 seconds):
+> "Watch — three fillers already. 'Um', 'basically', 'I think'. In real time."
 
-> "I think for a URL shortener, you'd basically take the long URL and hash it — like MD5 or something.
-> Then store the mapping in a database. When someone hits the short URL, you look it up and redirect.
-> I'm not sure if this is the best way but that's how I'd start."
+*Click Next, answer Q2 briefly (20 seconds):*
 
-*Click "Finish & Analyze"*
+> "For a URL shortener, I'd hash the long URL, store the mapping in a database,
+> and redirect on lookup. I'm not totally sure about the best hashing approach
+> but that's my starting point."
 
-> "That's it. Two answers, about 90 seconds of audio.
-> Now watch what happens."
+*Click Finish & Analyze.*
 
----
-
-## ANALYSIS LOADING (30–60 seconds)
-
-*The agent progress screen appears — point to each step.*
-
-> "The audio is being transcribed by OpenAI Whisper.
-> Then — and this is the key part — three agents analyze it simultaneously, in parallel.
-> Not sequentially. All at once."
-
-> "The Technical agent, the Communication agent, and the Confidence agent are all running right now.
-> Then the Synthesizer takes their outputs and builds the final report."
-
-*Wait for redirect to results.*
+> "That's it. About 60 seconds of audio. Watch what happens next."
 
 ---
 
-## RESULTS WALKTHROUGH (2 minutes)
+## 5. ANALYSIS & RESULTS (2 minutes)
 
-*Results page loads — score ring animates.*
+*Loading screen — point to the pipeline steps.*
 
-> "The score ring animates in — 6.1 out of 10.
-> That's an honest score. Not inflated, not vague."
+> "The audio is being transcribed locally by OpenAI Whisper — it runs on my machine,
+> the audio never leaves my computer.
+> Then the three specialist agents hit the Claude API in parallel — simultaneously,
+> not one after another. Total time is roughly the cost of one agent call."
 
-**Point to the radar chart:**
+*Results page loads. Score ring animates up.*
 
-> "This radar shows all three dimensions at once.
-> You can immediately see that confidence is the weakest — that 4.8 — which is exactly right.
+> "The score animates in — and notice there's confetti if this beats my last session.
+> The ring shows my overall score with the weighted breakdown.
+> Technical is 40%, Communication 35%, Confidence 25%."
+
+*Point to the scores section.*
+
+> "Technical: decent. Communication: okay. Confidence: low — and that's accurate.
 > I hedged constantly."
 
-**Click the first timeline moment:**
+*Scroll to timeline.*
 
-> "Here's where it gets impressive. This is the moment-by-moment timeline.
-> Let me click on the first one."
+> "This is the moment-by-moment timeline. Every flagged moment, timestamped."
 
-*Click timestamp 0:18 — 'I think it's like a stack…'*
+*Click a timestamp.*
 
-> "'I think it's like a stack' — the AI caught that.
-> And it says: 'You ARE correct — but I think it's like sounds like a guess.
-> Say: A stack uses LIFO ordering. Period. Own it.'
->
-> That's not generic feedback. That's a real interviewer coaching you."
+> "Click any moment and it jumps to that exact second.
+> 'I think it's LIFO' — the agent says: you ARE correct,
+> but 'I think' sounds like a guess. Say: 'A stack uses LIFO. Period.'
+> That's not generic advice. That's a real coaching note on a specific sentence."
 
-**Click the weakness at 0:54:**
+*Scroll to filler words.*
 
-> "Here — 'Missing Big-O, critical gap.' It says I never mentioned time complexity.
-> At any SWE interview, omitting that is a red flag.
-> The AI noticed I skipped it. A real interviewer would have marked me down for exactly this."
+> "Filler word breakdown — exact counts. Four 'basically', two 'I think', one 'um'.
+> This is what your interviewer was internally logging while you spoke."
 
-**Scroll to the action plan:**
+*Scroll to action plan.*
 
-> "Finally — the action plan. Five items, ordered by impact.
-> Item one: record yourself and count your filler words.
-> Item two: lead with the answer, not the context.
-> Item three: always state Big-O."
+> "And finally — the ranked action plan. Five items ordered by impact.
+> Number one: eliminate hedging. Number two: lead with the answer, then explain.
+> Number three: always state Big-O complexity."
 
-> "This is your coaching session after every interview.
-> Except companies never give you this. We do."
+*Click Ask Claude.*
 
----
+> "Last feature — Ask Claude. I can ask a follow-up question and get streaming,
+> personalized coaching grounded in my actual scores."
 
-## ARCHITECTURE (60 seconds)
+*Type: 'What should I fix first?' — show the streaming response.*
 
-*Optional — if professor asks, or include it.*
-
-> "Quick look at the technical architecture:"
-
-Draw or point to:
-```
-Audio → Whisper (transcription)
-         ↓
-    ┌────┴────┐
-Technical  Communication  Confidence   ← parallel Claude API calls
-    └────┬────┘
-      Synthesizer
-         ↓
-    Structured JSON → React UI
-```
-
-> "The backend is FastAPI. Transcription is local Whisper — no extra API key needed.
-> The three specialist agents call Claude's API concurrently using Python asyncio.
-> The Synthesizer takes all three outputs and generates the final report.
->
-> The key architectural choice: four agents instead of one.
-> One LLM doing everything would give you generic feedback.
-> Four specialists give you specific, dimensional feedback — and they can run in parallel,
-> so the total time is the time of one agent, not four."
+> "It's not answering generically. It's reading my specific scores and telling me
+> exactly where to focus."
 
 ---
 
-## CLOSING (30 seconds)
+## 6. ARCHITECTURE — TECHNICAL OVERVIEW (45 seconds)
 
-> "Most capstone projects build chatbots or assistants.
+> "Here's how it's built.
 >
-> This is different. This is a performance intelligence system.
+> Frontend: React with Tailwind and Framer Motion.
+> Backend: FastAPI in Python.
+> Transcription: OpenAI Whisper running locally — no extra key needed.
 >
-> The insight is simple: interviews are the highest-stakes conversations most people ever have,
-> and the feedback loop is completely broken.
-> Interview Copilot fixes that.
+> The core of the system is the agent pipeline."
+
+*Draw or point to this:*
+
+```
+Audio → Whisper
+          ↓
+   ┌──────┴──────┐
+Technical  Comm  Confidence   ← 3 Claude agents, parallel
+   └──────┬──────┘
+       Synthesizer
+          ↓
+     Action Plan + Report
+```
+
+> "The key design decision was four agents instead of one.
+> One LLM doing everything gives you generic feedback.
+> Four specialists each have a narrow focus, a specific evaluation rubric,
+> and they run in parallel — so the total analysis time is the time of one agent, not four.
+>
+> The Gmail integration adds a fifth Claude call — reading your inbox
+> and extracting structured interview data from natural language emails."
+
+---
+
+## 7. CLOSING (30 seconds)
+
+> "Most AI projects build chatbots.
+>
+> This is different. This is a performance intelligence system —
+> a closed feedback loop for the highest-stakes conversation most people ever have.
+>
+> The insight is simple:
+> companies know exactly why you didn't get the job.
+> They just never tell you.
+>
+> Interview Copilot tells you.
 >
 > Thank you."
 
 ---
 
-## Q&A PREP — likely questions
+## Q&A CHEAT SHEET
 
 **"How accurate is the feedback?"**
-> "The agents are prompted as domain experts with specific evaluation criteria.
-> In our testing, the feedback mirrors what experienced interviewers would say — often more specifically,
-> because the AI can quote exact moments from the transcript."
+> "The agents are prompted as domain experts with specific rubrics.
+> In testing, the feedback matches what an experienced interviewer would say —
+> and it's often more specific because it can quote exact moments from the transcript."
 
-**"Could you use this for any type of interview?"**
-> "Yes — we support six types: behavioral, SWE, data science, product, leadership, and finance.
-> Each has different question banks and the Technical agent adjusts its evaluation criteria based on the type."
+**"Why four agents instead of one?"**
+> "Specialization. A single prompt trying to evaluate technical depth, communication structure,
+> AND confidence simultaneously produces shallow, unfocused feedback.
+> Each agent has one job, one rubric, and returns structured JSON.
+> The Synthesizer then weighs them. The parallelism is a performance bonus."
 
-**"What if the backend is slow?"**
-> "The three specialist agents run in parallel, not sequentially.
-> Total time is roughly equal to one agent call, not three. Usually 30–45 seconds."
+**"What interview types does it support?"**
+> "Six: Software Engineering, Behavioral, Data Science, Product Management, Leadership, and Finance.
+> The Technical agent adjusts its evaluation criteria per type."
 
-**"Why Claude instead of GPT?"**
-> "Claude has stronger instruction-following for structured JSON output, which is critical
-> for the agent pipeline — we need consistent schema from every agent, every time."
+**"Is the transcription accurate?"**
+> "Whisper is state of the art for speech recognition. It handles accents, pacing,
+> and crosstalk well. For very short recordings it's near-perfect."
 
-**"Is this commercially viable?"**
-> "The core use case is clear: students, job-seekers, career changers.
-> Freemium model: free basic feedback, paid deep analysis and history.
+**"Could this be a real product?"**
+> "Yes. Freemium: free basic feedback, paid history and coaching.
 > The addressable market is anyone who interviews — which is everyone."
+
+**"What was the hardest part to build?"**
+> "The Gmail OAuth PKCE flow. Google generates a code verifier when you build the auth URL,
+> but the callback creates a new server-side object that doesn't have it.
+> Had to store the original flow object in memory keyed by OAuth state
+> so the callback could reuse it for the token exchange."
+
+---
+
+## TIMING BREAKDOWN
+
+| Section | Time |
+|---|---|
+| Hook — the problem | 0:30 |
+| Solution — landing page | 0:30 |
+| Dashboard + Gmail | 0:45 |
+| Live interview recording | 1:30 |
+| Analysis + results | 2:00 |
+| Architecture | 0:45 |
+| Closing | 0:30 |
+| **Total** | **~7:00** |
