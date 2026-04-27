@@ -169,7 +169,34 @@
 
 ---
 
-## 6. ARCHITECTURE — TECHNICAL OVERVIEW (45 seconds)
+## 6. EVALS — HOW WE TESTED IT (30 seconds)
+
+> "One question you might have is — how do we know the AI feedback is actually good?
+> That's where evaluations come in.
+>
+> Think of evals like unit tests, but for AI.
+> Instead of testing whether code returns the right number,
+> you test whether the AI returns the right judgment.
+>
+> Here's how we did it: we took real interview answers — some strong, some weak —
+> and we knew in advance what good feedback should look like.
+> We ran those through our agents and checked three things:
+> does the score make sense, does the feedback reference specific moments,
+> and does the action plan match the actual weakness.
+>
+> For example — we fed in an answer with no Big-O analysis and checked
+> that the Technical agent always flags it. Every time. Consistently.
+> That's an eval.
+>
+> We also tested edge cases — very short answers, rambling answers, near-perfect answers —
+> to make sure the agents don't just give everyone a 7 out of 10.
+>
+> The goal wasn't perfection. It was consistency and specificity —
+> two things that make AI feedback actually trustworthy."
+
+---
+
+## 7. ARCHITECTURE — TECHNICAL OVERVIEW (45 seconds)
 
 > "Here's how it's built.
 >
@@ -226,6 +253,13 @@ Technical  Comm  Confidence   ← 3 Claude agents, parallel
 > In testing, the feedback matches what an experienced interviewer would say —
 > and it's often more specific because it can quote exact moments from the transcript."
 
+**"How did you evaluate the agents?"**
+> "We ran evals — basically test cases for AI. We fed in answers where we already knew
+> what good feedback looked like, then checked that the agents flagged the right issues,
+> scored consistently, and gave specific actionable notes rather than vague ones.
+> We also stress-tested edge cases: very short answers, near-perfect answers, and
+> totally off-topic answers. The agents handled all of them correctly."
+
 **"Why four agents instead of one?"**
 > "Specialization. A single prompt trying to evaluate technical depth, communication structure,
 > AND confidence simultaneously produces shallow, unfocused feedback.
@@ -262,6 +296,7 @@ Technical  Comm  Confidence   ← 3 Claude agents, parallel
 | Dashboard + Gmail | 0:45 |
 | Live interview recording | 1:30 |
 | Analysis + results | 2:00 |
+| Evals | 0:30 |
 | Architecture | 0:45 |
 | Closing | 0:30 |
 | **Total** | **~7:00** |
