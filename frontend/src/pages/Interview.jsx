@@ -452,6 +452,23 @@ export default function Interview() {
                     <p className="text-gray-500 text-sm">Choose how you want to record, then pick your interview type.</p>
                   </div>
 
+                  {/* AI Interviewer CTA */}
+                  <button
+                    onClick={() => navigate(`/ai-interviewer?type=${interviewType}`)}
+                    className="w-full flex items-center justify-between gap-4 p-4 rounded-2xl border border-indigo-500/30 bg-indigo-600/10 hover:bg-indigo-600/15 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center shrink-0">
+                        <span className="text-lg">🤖</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-indigo-200">Try AI Interviewer <span className="text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded-full px-2 py-0.5 ml-1">NEW</span></p>
+                        <p className="text-xs text-gray-500 mt-0.5">Have a real spoken conversation with an AI interviewer</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                  </button>
+
                   {/* Mode toggle */}
                   <div className="grid grid-cols-3 gap-3">
                     {MODES.map(m => (

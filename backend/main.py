@@ -194,6 +194,65 @@ async def generate_questions(
     return result
 
 
+class AIInterviewMessage(BaseModel):
+    role: str   # "interviewer" | "user"
+    text: str
+
+class AIInterviewRequest(BaseModel):
+    messages: list[AIInterviewMessage]
+    interview_type: str = "general"
+    exchange_count: int = 0
+
+@app.post("/ai-interview")
+async def ai_interview_chat(body: AIInterviewRequest):
+    """
+    Real-time AI interviewer conversation. Returns Alex's next spoken line.
+    """
+    client = get_client()
+
+    type_label = {
+        "technical-swe": "Software Engineering",
+        "behavioral": "Behavioral",
+        "data-science": "Data Science",
+        "product": "Product Management",
+        "leadership": "Leadership",
+        "finance": "Finance",
+    }.get(body.interview_type, "general")
+
+    system = f"""You are Alex, a professional interviewer at a top tech company conducting a {type_label} interview.
+
+Personality: warm, confident, concise. You sound like a real human interviewer — not a chatbot.
+
+Rules:
+- Keep EVERY response to 1-3 sentences maximum. Never longer.
+- Ask exactly ONE question per response.
+- If no messages yet: greet the candidate by name if known, briefly introduce yourself, and ask your first question.
+- After each candidate answer: either ask a natural follow-up OR smoothly transition to the next topic.
+- After {5} total exchanges, close warmly: "That's all the questions I have for today. Thank you so much for your time — we'll be in touch soon."
+- Never give feedback, scores, or coaching during the interview. Stay in character always.
+- Sound conversational — vary your transitions ("Great.", "Interesting.", "Got it.", "Thanks for that.")"""
+
+    claude_messages = []
+    for m in body.messages:
+        role = "assistant" if m.role == "interviewer" else "user"
+        claude_messages.append({"role": role, "content": m.text})
+
+    if not claude_messages:
+        claude_messages = [{"role": "user", "content": "Begin the interview now."}]
+
+    loop = asyncio.get_event_loop()
+    def _call():
+        return client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=150,
+            system=system,
+            messages=claude_messages,
+        )
+    response = await loop.run_in_executor(executor, _call)
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(response.content[0].text.strip())
+
+
 class AskRequest(BaseModel):
     question: str
     context: str   # serialized summary of the result (scores + summary + top issues)

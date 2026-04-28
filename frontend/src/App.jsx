@@ -6,6 +6,7 @@ import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Interview from './pages/Interview'
 import Results from './pages/Results'
+import AIInterviewer from './pages/AIInterviewer'
 
 export default function App() {
   const location = useLocation()
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/interview" element={<Interview />} />
             <Route path="/results" element={<Results />} />
+            <Route path="/ai-interviewer" element={<AIInterviewer />} />
           </Routes>
         </AnimatePresence>
       </ToastProvider>
