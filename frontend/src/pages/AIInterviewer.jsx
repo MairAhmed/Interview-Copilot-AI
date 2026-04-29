@@ -173,7 +173,7 @@ export default function AIInterviewer() {
   const [error, setError]               = useState('')
   const [muted, setMuted]               = useState(false)
 
-  const synthRef       = useRef(window.speechSynthesis)
+  const audioRef       = useRef(null)   // current playing Audio object
   const recognitionRef = useRef(null)
   const userAnswerRef  = useRef('')     // stable ref for final answer text
   const messagesEndRef = useRef(null)
@@ -191,39 +191,71 @@ export default function AIInterviewer() {
   useEffect(() => {
     startConversation([])
     return () => {
-      synthRef.current.cancel()
+      audioRef.current?.pause()
       recognitionRef.current?.abort()
     }
   }, [])
 
-  // ── Speak a line ────────────────────────────────────────────────────────────
-  const speak = useCallback((text, onDone) => {
+  // ── Speak a line via ElevenLabs ─────────────────────────────────────────────
+  const speak = useCallback(async (text, onDone) => {
     setPhase('speaking')
     phaseRef.current = 'speaking'
     setLiveText(text)
-    synthRef.current.cancel()
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
 
     if (muted) {
-      // Skip TTS if muted but still show text
       setTimeout(() => { onDone?.() }, 1500)
       return
     }
 
-    const utter = new SpeechSynthesisUtterance(text)
-    const voices = synthRef.current.getVoices()
-    const preferred = voices.find(v =>
-      v.name.includes('Google UK English Female') ||
-      v.name.includes('Google US English') ||
-      v.name.includes('Samantha') ||
-      (v.lang === 'en-US' && v.localService === false)
-    ) || voices.find(v => v.lang.startsWith('en'))
-    if (preferred) utter.voice = preferred
-    utter.rate  = 0.92
-    utter.pitch = 1.05
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
 
-    utter.onend = () => { onDone?.() }
-    utter.onerror = () => { onDone?.() }
-    synthRef.current.speak(utter)
+      if (!res.ok) {
+        // ElevenLabs not configured — fall back to browser TTS
+        throw new Error('tts_unavailable')
+      }
+
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        onDone?.()
+      }
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        onDone?.()
+      }
+      audio.play()
+    } catch {
+      // Fallback: browser SpeechSynthesis if ElevenLabs unavailable
+      const synth = window.speechSynthesis
+      synth.cancel()
+      const utter = new SpeechSynthesisUtterance(text)
+      const voices = synth.getVoices()
+      const preferred = voices.find(v =>
+        v.name.includes('Google US English') || v.lang === 'en-US'
+      )
+      if (preferred) utter.voice = preferred
+      utter.rate = 0.92
+      utter.onend = () => onDone?.()
+      utter.onerror = () => onDone?.()
+      synth.speak(utter)
+    }
   }, [muted])
 
   // ── Start listening ─────────────────────────────────────────────────────────
@@ -357,13 +389,15 @@ export default function AIInterviewer() {
   }, [interviewType, speak, startListening])
 
   const handleEndCall = () => {
-    synthRef.current.cancel()
+    audioRef.current?.pause()
+    window.speechSynthesis.cancel()
     recognitionRef.current?.abort()
     navigate(-1)
   }
 
   const handleRestart = () => {
-    synthRef.current.cancel()
+    audioRef.current?.pause()
+    window.speechSynthesis.cancel()
     recognitionRef.current?.abort()
     startConversation([])
   }

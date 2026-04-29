@@ -2,6 +2,7 @@ import os
 import asyncio
 import json
 import base64
+import httpx
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
@@ -45,6 +46,53 @@ def get_client():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── ElevenLabs TTS proxy ───────────────────────────────────────────────────────
+# Voice: Adam — deep, professional, authoritative interviewer voice
+ELEVENLABS_VOICE_ID = "pNInz6obpgDQGcFmaJgB"
+ELEVENLABS_MODEL    = "eleven_turbo_v2"   # lowest latency model
+
+class TTSRequest(BaseModel):
+    text: str
+
+@app.post("/tts")
+async def text_to_speech(body: TTSRequest):
+    """Proxy text → ElevenLabs → MP3 audio bytes."""
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=501, detail="ELEVENLABS_API_KEY not set")
+
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(
+            url,
+            headers={
+                "xi-api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "audio/mpeg",
+            },
+            json={
+                "text": body.text,
+                "model_id": ELEVENLABS_MODEL,
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.75,
+                    "style": 0.3,
+                    "use_speaker_boost": True,
+                },
+            },
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"ElevenLabs error: {resp.text}")
+
+    return StreamingResponse(
+        iter([resp.content]),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.post("/analyze", response_model=AnalysisResult)
