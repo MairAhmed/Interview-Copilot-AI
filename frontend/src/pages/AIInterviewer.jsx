@@ -159,16 +159,88 @@ function StatusPill({ phase }) {
   )
 }
 
+const INTERVIEW_TYPES = [
+  { key: 'data-science',   label: 'Data Science',         emoji: '📊' },
+  { key: 'technical-swe',  label: 'Software Engineering', emoji: '💻' },
+  { key: 'behavioral',     label: 'Behavioral',           emoji: '🧠' },
+  { key: 'product',        label: 'Product Management',   emoji: '🗂️' },
+  { key: 'leadership',     label: 'Leadership',           emoji: '🎯' },
+  { key: 'finance',        label: 'Finance',              emoji: '📈' },
+]
+
+// ─── Setup screen ─────────────────────────────────────────────────────────────
+function SetupScreen({ onStart }) {
+  const [selected, setSelected] = useState('data-science')
+
+  return (
+    <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center px-6">
+      <div className="w-full max-w-md space-y-8 animate-fade-up">
+        {/* Avatar preview */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-20 h-20 rounded-full bg-indigo-600/20 border-2 border-indigo-500/40 flex items-center justify-center">
+            <span className="text-3xl">🤖</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-black">Meet Alex</h1>
+            <p className="text-gray-500 text-sm mt-1">Your AI interviewer. Pick a type and Alex will conduct a real spoken interview with you.</p>
+          </div>
+        </div>
+
+        {/* Type selector */}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-3">Interview Type</p>
+          <div className="grid grid-cols-2 gap-2">
+            {INTERVIEW_TYPES.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setSelected(t.key)}
+                className={clsx(
+                  'flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all',
+                  selected === t.key
+                    ? 'bg-indigo-600/15 border-indigo-500/40 text-white'
+                    : 'bg-white/[0.02] border-white/[0.06] text-gray-400 hover:border-white/[0.12] hover:text-gray-300'
+                )}
+              >
+                <span className="text-xl">{t.emoji}</span>
+                <span className="text-sm font-semibold leading-tight">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tips */}
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-2">
+          <p className="text-xs font-semibold text-gray-400">Before you start</p>
+          <ul className="space-y-1.5 text-xs text-gray-600">
+            <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Use Chrome for best mic support</li>
+            <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Allow microphone access when prompted</li>
+            <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Speak naturally — Alex will listen automatically</li>
+          </ul>
+        </div>
+
+        <button
+          onClick={() => onStart(selected)}
+          className="w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2"
+        >
+          <Mic className="w-5 h-5" /> Start Interview with Alex
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function AIInterviewer() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const interviewType = searchParams.get('type') || 'general'
+
+  const [selectedType, setSelectedType]  = useState(null)  // null = show setup screen
+  const interviewType = selectedType || searchParams.get('type') || 'general'
 
   const [phase, setPhase]               = useState('idle')
   const [messages, setMessages]         = useState([])
-  const [liveText, setLiveText]         = useState('')   // what's being spoken right now
-  const [interimText, setInterimText]   = useState('')   // user's live speech
+  const [liveText, setLiveText]         = useState('')
+  const [interimText, setInterimText]   = useState('')
   const [exchangeCount, setExchangeCount] = useState(0)
   const [error, setError]               = useState('')
   const [muted, setMuted]               = useState(false)
@@ -178,6 +250,7 @@ export default function AIInterviewer() {
   const userAnswerRef  = useRef('')     // stable ref for final answer text
   const messagesEndRef = useRef(null)
   const phaseRef       = useRef('idle') // stable ref so callbacks see current phase
+  const startedRef     = useRef(false)  // guard against React StrictMode double-fire
 
   // Keep phaseRef in sync
   useEffect(() => { phaseRef.current = phase }, [phase])
@@ -187,14 +260,18 @@ export default function AIInterviewer() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Kick off on mount
+  // Kick off once user picks a type — guard prevents React StrictMode double-fire
   useEffect(() => {
+    if (!selectedType) return
+    if (startedRef.current) return
+    startedRef.current = true
     startConversation([])
     return () => {
       audioRef.current?.pause()
+      window.speechSynthesis.cancel()
       recognitionRef.current?.abort()
     }
-  }, [])
+  }, [selectedType])
 
   // ── Speak a line via ElevenLabs ─────────────────────────────────────────────
   const speak = useCallback(async (text, onDone) => {
@@ -202,7 +279,10 @@ export default function AIInterviewer() {
     phaseRef.current = 'speaking'
     setLiveText(text)
 
-    // Stop any currently playing audio
+    // Always kill browser TTS immediately — prevents double voice
+    window.speechSynthesis.cancel()
+
+    // Stop any currently playing ElevenLabs audio
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
@@ -220,15 +300,15 @@ export default function AIInterviewer() {
         body: JSON.stringify({ text }),
       })
 
-      if (!res.ok) {
-        // ElevenLabs not configured — fall back to browser TTS
-        throw new Error('tts_unavailable')
-      }
+      if (!res.ok) throw new Error('tts_unavailable')
 
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audioRef.current = audio
+
+      // Kill browser TTS again after async fetch (belt-and-suspenders)
+      window.speechSynthesis.cancel()
 
       audio.onended = () => {
         URL.revokeObjectURL(url)
@@ -240,21 +320,25 @@ export default function AIInterviewer() {
         audioRef.current = null
         onDone?.()
       }
-      audio.play()
+
+      try {
+        await audio.play()
+      } catch {
+        // Autoplay blocked — still call onDone so conversation continues
+        onDone?.()
+      }
+
     } catch {
-      // Fallback: browser SpeechSynthesis if ElevenLabs unavailable
-      const synth = window.speechSynthesis
-      synth.cancel()
+      // ElevenLabs unavailable — browser TTS only fallback
+      window.speechSynthesis.cancel()
       const utter = new SpeechSynthesisUtterance(text)
-      const voices = synth.getVoices()
-      const preferred = voices.find(v =>
-        v.name.includes('Google US English') || v.lang === 'en-US'
-      )
+      const voices = window.speechSynthesis.getVoices()
+      const preferred = voices.find(v => v.name.includes('Google US English') || v.lang === 'en-US')
       if (preferred) utter.voice = preferred
       utter.rate = 0.92
-      utter.onend = () => onDone?.()
+      utter.onend  = () => onDone?.()
       utter.onerror = () => onDone?.()
-      synth.speak(utter)
+      window.speechSynthesis.speak(utter)
     }
   }, [muted])
 
@@ -400,6 +484,18 @@ export default function AIInterviewer() {
     window.speechSynthesis.cancel()
     recognitionRef.current?.abort()
     startConversation([])
+  }
+
+  // Show setup screen until user picks a type
+  if (!selectedType) {
+    return (
+      <SetupScreen
+        onStart={(type) => {
+          setSelectedType(type)
+          startedRef.current = false  // allow the effect to fire
+        }}
+      />
+    )
   }
 
   return (
