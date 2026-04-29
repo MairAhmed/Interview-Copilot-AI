@@ -170,11 +170,45 @@ const INTERVIEW_TYPES = [
 
 // ─── Setup screen ─────────────────────────────────────────────────────────────
 function SetupScreen({ onStart }) {
-  const [selected, setSelected] = useState('data-science')
+  const [selected,    setSelected]    = useState('data-science')
+  const [resumeFile,  setResumeFile]  = useState(null)
+  const [resumeText,  setResumeText]  = useState('')
+  const [resumeState, setResumeState] = useState('idle') // idle | loading | done | error
+
+  const handleResumeFile = async (file) => {
+    if (!file) return
+    setResumeFile(file)
+    setResumeState('loading')
+    try {
+      const fd = new FormData()
+      fd.append('file', file, file.name)
+      fd.append('interview_type', selected)
+      // Reuse the existing generate-questions endpoint to extract text
+      // but we only need the raw text — use a lighter dedicated parse endpoint
+      // Fallback: read as text directly in browser for .txt files
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        // Send to backend to extract PDF text
+        const res = await fetch('/api/parse-resume', {
+          method: 'POST',
+          body: fd,
+        })
+        if (!res.ok) throw new Error('parse_failed')
+        const data = await res.json()
+        setResumeText(data.text)
+      } else {
+        // Plain text — read directly
+        const text = await file.text()
+        setResumeText(text)
+      }
+      setResumeState('done')
+    } catch {
+      setResumeState('error')
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md space-y-8 animate-fade-up">
+    <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center px-6 py-10">
+      <div className="w-full max-w-md space-y-6 animate-fade-up">
         {/* Avatar preview */}
         <div className="flex flex-col items-center gap-3">
           <div className="w-20 h-20 rounded-full bg-indigo-600/20 border-2 border-indigo-500/40 flex items-center justify-center">
@@ -182,7 +216,7 @@ function SetupScreen({ onStart }) {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-black">Meet Alex</h1>
-            <p className="text-gray-500 text-sm mt-1">Your AI interviewer. Pick a type and Alex will conduct a real spoken interview with you.</p>
+            <p className="text-gray-500 text-sm mt-1">Your AI interviewer. Pick a type, upload your resume, and Alex will tailor every question to your background.</p>
           </div>
         </div>
 
@@ -208,21 +242,71 @@ function SetupScreen({ onStart }) {
           </div>
         </div>
 
+        {/* Resume upload */}
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-3">
+            Resume <span className="normal-case tracking-normal text-gray-600 font-normal">(optional — Alex will tailor questions to you)</span>
+          </p>
+          {!resumeFile ? (
+            <label className="cursor-pointer">
+              <div className="w-full flex items-center gap-3 p-4 rounded-xl border border-dashed border-white/[0.08] hover:border-indigo-500/30 hover:bg-indigo-600/5 transition-all text-gray-500 hover:text-gray-300">
+                <span className="text-xl">📄</span>
+                <div>
+                  <p className="text-sm font-medium">Upload resume / CV</p>
+                  <p className="text-xs text-gray-600 mt-0.5">PDF or plain text</p>
+                </div>
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.txt,.doc,.docx"
+                className="hidden"
+                onChange={e => handleResumeFile(e.target.files?.[0])}
+              />
+            </label>
+          ) : (
+            <div className={clsx(
+              'flex items-center gap-3 p-4 rounded-xl border transition-all',
+              resumeState === 'done'    ? 'border-indigo-500/30 bg-indigo-600/5' :
+              resumeState === 'error'   ? 'border-red-500/30 bg-red-600/5' :
+              'border-white/[0.08] bg-white/[0.02]'
+            )}>
+              <span className="text-xl shrink-0">
+                {resumeState === 'loading' ? '⏳' : resumeState === 'done' ? '✅' : resumeState === 'error' ? '❌' : '📄'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{resumeFile.name}</p>
+                <p className="text-xs mt-0.5 text-gray-500">
+                  {resumeState === 'loading' ? 'Reading resume…' :
+                   resumeState === 'done'    ? `Ready — Alex will personalise your interview` :
+                   resumeState === 'error'   ? 'Could not read file — Alex will use generic questions' :
+                   ''}
+                </p>
+              </div>
+              <button
+                onClick={() => { setResumeFile(null); setResumeText(''); setResumeState('idle') }}
+                className="text-gray-600 hover:text-gray-300 transition-colors shrink-0"
+              >✕</button>
+            </div>
+          )}
+        </div>
+
         {/* Tips */}
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-2">
           <p className="text-xs font-semibold text-gray-400">Before you start</p>
           <ul className="space-y-1.5 text-xs text-gray-600">
             <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Use Chrome for best mic support</li>
             <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Allow microphone access when prompted</li>
-            <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Speak naturally — Alex will listen automatically</li>
+            <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Speak naturally — Alex listens automatically</li>
           </ul>
         </div>
 
         <button
-          onClick={() => onStart(selected)}
-          className="w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2"
+          onClick={() => onStart(selected, resumeText)}
+          disabled={resumeState === 'loading'}
+          className="w-full btn-primary py-4 text-base font-bold flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          <Mic className="w-5 h-5" /> Start Interview with Alex
+          <Mic className="w-5 h-5" />
+          {resumeText ? 'Start Personalised Interview' : 'Start Interview with Alex'}
         </button>
       </div>
     </div>
@@ -235,6 +319,7 @@ export default function AIInterviewer() {
   const [searchParams] = useSearchParams()
 
   const [selectedType, setSelectedType]  = useState(null)  // null = show setup screen
+  const [resumeText,   setResumeText]    = useState('')
   const interviewType = selectedType || searchParams.get('type') || 'general'
 
   const [phase, setPhase]               = useState('idle')
@@ -427,6 +512,7 @@ export default function AIInterviewer() {
           messages: history,
           interview_type: interviewType,
           exchange_count: history.filter(m => m.role === 'user').length,
+          resume_text: resumeText || '',
         }),
       })
       const text = await res.text()
@@ -490,7 +576,8 @@ export default function AIInterviewer() {
   if (!selectedType) {
     return (
       <SetupScreen
-        onStart={(type) => {
+        onStart={(type, resume) => {
+          setResumeText(resume || '')
           setSelectedType(type)
           startedRef.current = false  // allow the effect to fire
         }}
