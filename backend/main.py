@@ -251,6 +251,7 @@ class AIInterviewRequest(BaseModel):
     interview_type: str = "general"
     exchange_count: int = 0
     resume_text: str = ""
+    job_description: str = ""
 
 @app.post("/ai-interview")
 async def ai_interview_chat(body: AIInterviewRequest):
@@ -277,6 +278,15 @@ CANDIDATE'S RESUME:
 Use this resume to ask specific, tailored questions. Reference their actual projects, roles, skills, and experiences.
 Don't ask generic questions — probe what's on their resume."""
 
+    jd_section = ""
+    if body.job_description.strip():
+        jd_section = f"""
+JOB DESCRIPTION:
+{body.job_description[:3000]}
+
+Tailor your questions to this specific role. Ask about skills, tools, and experiences mentioned in the JD.
+If the candidate submits code, evaluate it in the context of what this role would require."""
+
     system = f"""You are Alex, a professional interviewer at a top tech company conducting a {type_label} interview.
 
 Personality: warm, confident, concise. You sound like a real human interviewer — not a chatbot.
@@ -289,7 +299,8 @@ Rules:
 - After {5} total exchanges, close warmly: "That's all the questions I have for today. Thank you so much for your time — we'll be in touch soon."
 - Never give feedback, scores, or coaching during the interview. Stay in character always.
 - Sound conversational — vary your transitions ("Great.", "Interesting.", "Got it.", "Thanks for that.")
-{resume_section}"""
+- When the candidate shares code (marked [Code submitted]), briefly acknowledge it and ask them to walk you through their thinking or a specific part of the solution.
+{resume_section}{jd_section}"""
 
     claude_messages = []
     for m in body.messages:
