@@ -304,7 +304,8 @@ export default function AIInterviewer() {
   const audioRef       = useRef(null)
   const speakIdRef     = useRef(0)
   const recognitionRef = useRef(null)
-  const userAnswerRef  = useRef('')
+  const userAnswerRef  = useRef('')   // finalized transcript chunks
+  const interimRef     = useRef('')   // current interim (not yet finalized by Chrome)
   const messagesEndRef = useRef(null)
   const phaseRef       = useRef('idle')
   const startedRef     = useRef(false)
@@ -415,21 +416,23 @@ export default function AIInterviewer() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) { setError('Speech recognition not supported — please use Chrome.'); return }
 
-    // Abort any existing session before starting a new one
+    // Abort any existing session before starting a new one (prevents DOMException)
     if (recognitionRef.current) {
       try { recognitionRef.current.abort() } catch {}
       recognitionRef.current = null
     }
 
     setPhase('listening'); phaseRef.current = 'listening'
-    setInterimText(''); userAnswerRef.current = ''
+    setInterimText('')
+    userAnswerRef.current = ''
+    interimRef.current    = ''
 
     const rec = new SR()
     rec.continuous = true; rec.interimResults = true; rec.lang = 'en-US'
     recognitionRef.current = rec
 
     let silenceTimer = null
-    let fatalError   = false   // blocks onend from restarting after a real error
+    let fatalError   = false
 
     rec.onresult = (e) => {
       let final = '', interim = ''
@@ -437,17 +440,34 @@ export default function AIInterviewer() {
         const t = e.results[i][0].transcript
         if (e.results[i].isFinal) final += t; else interim += t
       }
-      if (final) { userAnswerRef.current += ' ' + final; setInterimText('') }
-      else setInterimText(interim)
+      if (final) {
+        userAnswerRef.current += ' ' + final
+        interimRef.current = ''
+        setInterimText('')
+      } else {
+        interimRef.current = interim
+        setInterimText(interim)
+      }
+
+      // Reset silence timer on every new result (final OR interim)
       clearTimeout(silenceTimer)
       silenceTimer = setTimeout(() => {
-        if (phaseRef.current === 'listening' && userAnswerRef.current.trim()) rec.stop()
+        if (phaseRef.current !== 'listening') return
+
+        // Merge finalized + any still-interim text
+        // (Chrome often holds back the last phrase as interim until rec.stop())
+        const combined = (userAnswerRef.current + ' ' + interimRef.current).trim()
+        if (combined) {
+          userAnswerRef.current = combined   // promote interim so onend sees it
+          interimRef.current    = ''
+          rec.stop()                         // triggers onend → handleUserAnswer
+        }
+        // If truly empty (silence with no speech) just wait — rec will fire no-speech/onend
       }, 2500)
     }
 
     rec.onerror = (e) => {
       clearTimeout(silenceTimer)
-      // These are expected / non-fatal — don't show any error
       const silent = ['no-speech', 'aborted']
       if (silent.includes(e.error)) return
 
@@ -457,8 +477,7 @@ export default function AIInterviewer() {
       } else if (e.error === 'audio-capture') {
         setError('No microphone found — connect a mic and refresh.')
       } else if (e.error === 'network') {
-        // Transient — let onend restart quietly
-        fatalError = false
+        fatalError = false   // transient — let onend restart quietly
       } else {
         setError(`Microphone error: ${e.error} — try refreshing.`)
       }
@@ -466,23 +485,22 @@ export default function AIInterviewer() {
 
     rec.onend = () => {
       clearTimeout(silenceTimer)
-      // If we're no longer supposed to be listening (speaking / thinking / done), just stop
-      if (phaseRef.current !== 'listening') return
-      // Fatal permission/hardware error — don't retry
-      if (fatalError) return
+      if (phaseRef.current !== 'listening') return   // speaking/thinking/done — stop cleanly
+      if (fatalError) return                          // hard error, don't loop
 
+      // Grab whatever we have (finalized + any residual interim Chrome sent at stop-time)
       const answer = userAnswerRef.current.trim()
       if (answer) {
         handleUserAnswer(answer)
       } else {
-        // No speech captured yet — restart after brief pause
+        // No speech at all — restart and keep waiting
         setTimeout(startListening, 400)
       }
     }
 
     try {
       rec.start()
-    } catch (err) {
+    } catch {
       setError('Could not start microphone — please refresh and try again.')
     }
   }, [])
