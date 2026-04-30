@@ -302,6 +302,7 @@ export default function AIInterviewer() {
   const [codeShared,   setCodeShared]   = useState(false)
 
   const audioRef       = useRef(null)
+  const speakIdRef     = useRef(0)
   const recognitionRef = useRef(null)
   const userAnswerRef  = useRef('')
   const messagesEndRef = useRef(null)
@@ -331,40 +332,80 @@ export default function AIInterviewer() {
     }
   }, [selectedType])
 
-  // ── TTS via ElevenLabs ──────────────────────────────────────────────────────
+  // ── Strip markdown so TTS never reads "asterisk asterisk" ──────────────────
+  function cleanForTTS(raw) {
+    return raw
+      .replace(/\*\*(.*?)\*\*/g, '$1')   // **bold**
+      .replace(/\*(.*?)\*/g,     '$1')   // *italic*
+      .replace(/`{1,3}[^`]*`{1,3}/g, '') // `code` / ```blocks```
+      .replace(/#{1,6}\s*/g,     '')     // ## headings
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // [link](url)
+      .replace(/[-•]\s/g,        '')     // bullet dashes
+      .replace(/\n{2,}/g,        ' ')
+      .trim()
+  }
+
+  // ── TTS via ElevenLabs (with stale-speak guard) ─────────────────────────────
   const speak = useCallback(async (text, onDone) => {
+    // Kill any previous audio immediately and null out its handlers
+    window.speechSynthesis.cancel()
+    if (audioRef.current) {
+      audioRef.current.onended = null
+      audioRef.current.onerror = null
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+
     setPhase('speaking')
     phaseRef.current = 'speaking'
     setLiveText(text)
-    window.speechSynthesis.cancel()
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
+    const ttsText = cleanForTTS(text)
     if (muted) { setTimeout(() => onDone?.(), 1200); return }
+
+    // Each speak call gets a unique ID; stale completions are ignored
+    const myId = ++speakIdRef.current
 
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: ttsText }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) throw new Error(`TTS ${res.status}`)
       const blob  = await res.blob()
       const url   = URL.createObjectURL(blob)
+
+      // If a newer speak() already started while we were fetching, discard this one
+      if (speakIdRef.current !== myId) { URL.revokeObjectURL(url); return }
+
       const audio = new Audio(url)
       audioRef.current = audio
-      window.speechSynthesis.cancel()
-      audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; onDone?.() }
-      audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; onDone?.() }
-      try { await audio.play() } catch { onDone?.() }
+      window.speechSynthesis.cancel()   // belt-and-suspenders
+
+      audio.onended = () => {
+        if (speakIdRef.current !== myId) return
+        URL.revokeObjectURL(url); audioRef.current = null; onDone?.()
+      }
+      audio.onerror = () => {
+        if (speakIdRef.current !== myId) return
+        URL.revokeObjectURL(url); audioRef.current = null; onDone?.()
+      }
+
+      // Let play() fail into outer catch → browser TTS fallback (NOT onDone directly)
+      await audio.play()
+
     } catch {
-      // Fallback to browser TTS
+      if (speakIdRef.current !== myId) return
+      // Fallback: browser TTS
       window.speechSynthesis.cancel()
-      const utter = new SpeechSynthesisUtterance(text)
-      const v = window.speechSynthesis.getVoices().find(v => v.name.includes('Google US English') || v.lang === 'en-US')
+      const utter = new SpeechSynthesisUtterance(ttsText)
+      const v = window.speechSynthesis.getVoices()
+        .find(v => v.name.includes('Google US English') || v.lang === 'en-US')
       if (v) utter.voice = v
       utter.rate = 0.92
-      utter.onend = () => onDone?.()
-      utter.onerror = () => onDone?.()
+      utter.onend  = () => { if (speakIdRef.current === myId) onDone?.() }
+      utter.onerror = () => { if (speakIdRef.current === myId) onDone?.() }
       window.speechSynthesis.speak(utter)
     }
   }, [muted])

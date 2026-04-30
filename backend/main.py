@@ -300,6 +300,7 @@ Rules:
 - Never give feedback, scores, or coaching during the interview. Stay in character always.
 - Sound conversational — vary your transitions ("Great.", "Interesting.", "Got it.", "Thanks for that.")
 - When the candidate shares code (marked [Code submitted]), briefly acknowledge it and ask them to walk you through their thinking or a specific part of the solution.
+- NEVER use markdown: no asterisks, no bold, no bullet points, no backticks, no headers. Plain spoken sentences only — this text is read aloud.
 {resume_section}{jd_section}"""
 
     claude_messages = []
