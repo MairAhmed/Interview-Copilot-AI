@@ -413,7 +413,14 @@ export default function AIInterviewer() {
   // ── Speech recognition ──────────────────────────────────────────────────────
   const startListening = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { setError('Speech recognition not supported. Use Chrome.'); return }
+    if (!SR) { setError('Speech recognition not supported — please use Chrome.'); return }
+
+    // Abort any existing session before starting a new one
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort() } catch {}
+      recognitionRef.current = null
+    }
+
     setPhase('listening'); phaseRef.current = 'listening'
     setInterimText(''); userAnswerRef.current = ''
 
@@ -422,6 +429,8 @@ export default function AIInterviewer() {
     recognitionRef.current = rec
 
     let silenceTimer = null
+    let fatalError   = false   // blocks onend from restarting after a real error
+
     rec.onresult = (e) => {
       let final = '', interim = ''
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -435,14 +444,47 @@ export default function AIInterviewer() {
         if (phaseRef.current === 'listening' && userAnswerRef.current.trim()) rec.stop()
       }, 2500)
     }
+
+    rec.onerror = (e) => {
+      clearTimeout(silenceTimer)
+      // These are expected / non-fatal — don't show any error
+      const silent = ['no-speech', 'aborted']
+      if (silent.includes(e.error)) return
+
+      fatalError = true
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        setError('Microphone access denied — click the lock icon in your address bar and allow mic access, then refresh.')
+      } else if (e.error === 'audio-capture') {
+        setError('No microphone found — connect a mic and refresh.')
+      } else if (e.error === 'network') {
+        // Transient — let onend restart quietly
+        fatalError = false
+      } else {
+        setError(`Microphone error: ${e.error} — try refreshing.`)
+      }
+    }
+
     rec.onend = () => {
       clearTimeout(silenceTimer)
+      // If we're no longer supposed to be listening (speaking / thinking / done), just stop
+      if (phaseRef.current !== 'listening') return
+      // Fatal permission/hardware error — don't retry
+      if (fatalError) return
+
       const answer = userAnswerRef.current.trim()
-      if (answer && phaseRef.current === 'listening') handleUserAnswer(answer)
-      else if (phaseRef.current === 'listening') setTimeout(startListening, 500)
+      if (answer) {
+        handleUserAnswer(answer)
+      } else {
+        // No speech captured yet — restart after brief pause
+        setTimeout(startListening, 400)
+      }
     }
-    rec.onerror = (e) => { if (e.error !== 'no-speech') setError(`Mic error: ${e.error}`); clearTimeout(silenceTimer) }
-    rec.start()
+
+    try {
+      rec.start()
+    } catch (err) {
+      setError('Could not start microphone — please refresh and try again.')
+    }
   }, [])
 
   // ── Handle spoken answer ────────────────────────────────────────────────────
@@ -643,7 +685,12 @@ export default function AIInterviewer() {
             )}
           </div>
 
-          {error && <p className="px-4 pb-3 text-xs text-red-400">{error}</p>}
+          {error && (
+            <div className="mx-4 mb-3 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2">
+              <span className="text-red-400 text-xs flex-1">{error}</span>
+              <button onClick={() => setError('')} className="text-red-400/60 hover:text-red-300 text-xs shrink-0">✕</button>
+            </div>
+          )}
         </div>
 
         {/* RIGHT — Monaco coding panel (technical only) */}
